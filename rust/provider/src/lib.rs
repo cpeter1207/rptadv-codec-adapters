@@ -460,4 +460,6 @@ unsafe fn output<'a, T>(pointer: *mut T, count: usize) -> &'a mut [T] {
 }
 
 #[cfg(test)]
+mod boundary_tests;
+#[cfg(test)]
 mod tests;

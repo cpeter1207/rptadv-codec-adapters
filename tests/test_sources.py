@@ -8,6 +8,12 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class Sources(unittest.TestCase):
+    def test_partial_coverage_cannot_weaken_the_default_gate(self):
+        makefile = (ROOT / "Makefile").read_text()
+        self.assertIn("COVERAGE_EXCLUDE ?= a^", makefile)
+        self.assertIn("coverage-foundations:", makefile)
+        self.assertIn('"$(COVERAGE_EXCLUDE)"', makefile)
+
     def test_coverage_runs_external_tests_against_instrumented_providers(self):
         coverage = (
             (ROOT / "Makefile")

@@ -128,6 +128,99 @@ class Descriptor(c.Structure):
 
 
 class G711(unittest.TestCase):
+    def test_contract_buffer_validation_and_direction_isolation(self):
+        """Invalid boundary inputs never reach a backend or consume valid state."""
+        library = c.CDLL(str(LIBRARY))
+        library.rptadv_codec_descriptor_v1.restype = c.POINTER(Descriptor)
+        api = library.rptadv_codec_descriptor_v1().contents
+        handles = []
+        config = Config(c.sizeof(Config), 1, 0, 160, 160)
+        for open_context in (api.open_encoder, api.open_decoder):
+            handle = c.c_void_p()
+            self.assertEqual(open_context(c.byref(config), c.byref(handle)), 0)
+            handles.append(handle)
+            self.addCleanup(api.destroy, handle)
+            for bad in [None, c.pointer(Config(4, 1, 0, 160, 160))]:
+                invalid = c.c_void_p(123)
+                self.assertEqual(open_context(bad, c.byref(invalid)), 3)
+                self.assertFalse(invalid.value)
+            self.assertEqual(open_context(c.byref(config), None), 3)
+            for frames, maximum in [(0, 160), (160, 159), (160, 2**32)]:
+                bad = Config(c.sizeof(Config), 1, 0, frames, maximum)
+                invalid = c.c_void_p(123)
+                self.assertEqual(open_context(c.byref(bad), c.byref(invalid)), 3)
+                self.assertFalse(invalid.value)
+        encoder, decoder = handles
+        pcm = (c.c_float * 161)()
+        wire = (c.c_uint8 * 161)(*([0xFF] * 161))
+        result = Encoded(struct_size=c.sizeof(Encoded))
+        packet = Packet(struct_size=c.sizeof(Packet))
+        count = c.c_size_t()
+        for context, data, length, info in [
+            (None, wire, 1, c.byref(packet)),
+            (c.c_void_p(1), wire, 1, c.byref(packet)),
+            (decoder, None, 1, c.byref(packet)),
+            (decoder, wire, 1, None),
+            (decoder, wire, 1, c.byref(Packet(struct_size=4))),
+            (decoder, wire, 161, c.byref(packet)),
+            (encoder, wire, 1, c.byref(packet)),
+        ]:
+            self.assertEqual(api.inspect(context, data, length, info), 3)
+        self.assertEqual(api.inspect(decoder, None, 0, c.byref(packet)), 0)
+        self.assertEqual(packet.frames, 0)
+        for context, data, length, out, capacity, flush in [
+            (None, pcm, 1, wire, 160, 0),
+            (encoder, None, 1, wire, 160, 0),
+            (encoder, pcm, 1, None, 160, 0),
+            (encoder, pcm, 1, wire, 160, 2),
+            (encoder, pcm, 2**63, wire, 160, 0),
+            (encoder, pcm, 1, wire, 2**63, 0),
+        ]:
+            self.assertEqual(
+                api.encode(
+                    context, data, length, out, capacity, flush, c.byref(result)
+                ),
+                3,
+            )
+            self.assertEqual((result.consumed_frames, result.encoded_bytes), (0, 0))
+        self.assertEqual(api.encode(encoder, pcm, 1, wire, 160, 0, None), 3)
+        self.assertEqual(
+            api.encode(encoder, pcm, 1, wire, 160, 0, c.byref(Encoded(struct_size=4))),
+            3,
+        )
+        self.assertEqual(api.encode(decoder, pcm, 1, wire, 160, 0, c.byref(result)), 4)
+        for context, data, length, out, capacity, written in [
+            (None, wire, 1, pcm, 160, c.byref(count)),
+            (decoder, None, 1, pcm, 160, c.byref(count)),
+            (decoder, wire, 1, None, 160, c.byref(count)),
+            (decoder, wire, 1, pcm, 160, None),
+            (decoder, wire, 1, pcm, 2**63, c.byref(count)),
+            (encoder, wire, 1, pcm, 160, c.byref(count)),
+        ]:
+            self.assertEqual(
+                api.decode(context, data, length, out, capacity, written), 3
+            )
+        self.assertEqual(api.decode(decoder, wire, 2, pcm, 1, c.byref(count)), 2)
+        self.assertEqual(count.value, 2)
+        self.assertEqual(api.decode(decoder, None, 0, None, 0, c.byref(count)), 0)
+        for context, out, capacity, written in [
+            (None, pcm, 160, c.byref(count)),
+            (decoder, None, 160, c.byref(count)),
+            (decoder, pcm, 160, None),
+        ]:
+            self.assertEqual(api.conceal(context, 1, out, capacity, written), 3)
+        self.assertEqual(api.conceal(encoder, 1, pcm, 160, c.byref(count)), 4)
+        self.assertEqual(api.conceal(decoder, 0, None, 0, c.byref(count)), 0)
+        self.assertEqual(api.reset(None), 3)
+        api.destroy(None)
+        self.assertEqual(api.encode(encoder, None, 0, None, 0, 1, c.byref(result)), 0)
+        self.assertEqual(api.encode(encoder, pcm, 1, wire, 160, 0, c.byref(result)), 3)
+        self.assertEqual(api.reset(encoder), 0)
+        self.assertEqual(
+            api.encode(encoder, pcm, 160, wire, 160, 0, c.byref(result)), 0
+        )
+        self.assertEqual(bytes(wire[:160]), b"\xff" * 160)
+
     def test_contract_g711_counts_and_isolation(self):
         """Byte/sample confusion or shared encoder state changes these results."""
         self.assertTrue(LIBRARY.is_file(), "G.711 shared provider has not been built")

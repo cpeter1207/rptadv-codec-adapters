@@ -11,12 +11,14 @@ BACKENDS := g711 pcm gsm opus speex spandsp bcg729 ilbc dialogic ffmpeg
 LIBRARIES := $(addprefix librptadv_codec_,$(BACKENDS))
 SONAMES := $(addsuffix .so.1,$(LIBRARIES))
 LIBVERSION := 1.0.0
+# The complete gate excludes nothing; focused targets select source parts only.
+COVERAGE_EXCLUDE ?= a^
 RUST_SOURCES := $(shell find rust -type f \( -name '*.rs' -o -name '*.c' -o -name 'Cargo.toml' \))
 EXTERNAL_SOURCES := $(shell find packaging/external -type f ! -name '*.pyc')
 export RPTADV_CODEC_BACKEND_LIBDIR ?= $(CURDIR)/build/backends/lib
 export LD_LIBRARY_PATH := $(RPTADV_CODEC_BACKEND_LIBDIR)$(if $(LD_LIBRARY_PATH),:$(LD_LIBRARY_PATH))
 
-.PHONY: all external backend-check sources-check test abi-check lint static-analysis docs quality install install-check coverage package-check debian-package-check platform-verify clean
+.PHONY: all external backend-check sources-check test abi-check lint static-analysis docs quality install install-check coverage coverage-foundations package-check debian-package-check platform-verify clean
 
 all: $(addprefix build/,$(SONAMES))
 
@@ -109,8 +111,11 @@ coverage:
 		RPTADV_CODEC_G711_LIBRARY="$$CARGO_TARGET_DIR/debug/librptadv_codec_g711.so" \
 		RPTADV_CODEC_PCM_LIBRARY="$$CARGO_TARGET_DIR/debug/librptadv_codec_pcm.so" \
 		$(PYTHON) -m unittest discover -s tests; \
-		$(CARGO) llvm-cov report --include-ffi --json --output-path build/coverage/rust.json
+		$(CARGO) llvm-cov report --include-ffi --ignore-filename-regex "$(COVERAGE_EXCLUDE)" --json --output-path build/coverage/rust.json
 	$(PYTHON) tests/check_coverage.py build/coverage/rust.json
+
+coverage-foundations:
+	$(MAKE) coverage COVERAGE_EXCLUDE='rust/(bcg729|gsm|ffmpeg|ilbc|opus|spandsp|speex)/'
 
 package-check: all
 	set -eu; stage=$$(mktemp -d "$(CURDIR)/build/package.XXXXXX"); \

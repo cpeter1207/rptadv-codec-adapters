@@ -10,7 +10,7 @@ on:
         description: Focused verification target
         required: true
         type: choice
-        options: [test, abi-check, install-check, package-check, docs, lint, static-analysis, coverage]
+        options: [test, abi-check, install-check, package-check, docs, lint, static-analysis, coverage, coverage-foundations]
 permissions:
   contents: read
   packages: read
