@@ -1,0 +1,92 @@
+Source: rptadv-codec-adapters
+Section: libs
+Priority: optional
+Maintainer: Chris Peterson <cpeter1207@users.noreply.github.com>
+Build-Depends: debhelper-compat (= 13), cargo, rustc, python3, cmake, pkg-config, libgsm1-dev, libopus-dev, libspeex-dev, libspandsp-dev, libavcodec-dev, libavutil-dev
+Standards-Version: 4.7.0
+Rules-Requires-Root: no
+
+Package: librptadv-codec-g7111
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: protocol-neutral G.711 codec provider
+ Versioned shared mu-law and A-law provider for RPT Advanced link adapters.
+
+Package: librptadv-codec-dev
+Section: libdevel
+Architecture: any
+Depends: librptadv-codec-g7111 (= ${binary:Version}), librptadv-codec-pcm1 (= ${binary:Version}), librptadv-codec-gsm1 (= ${binary:Version}), librptadv-codec-opus1 (= ${binary:Version}), librptadv-codec-speex1 (= ${binary:Version}), librptadv-codec-spandsp1 (= ${binary:Version}), librptadv-codec-bcg7291 (= ${binary:Version}), librptadv-codec-ilbc1 (= ${binary:Version}), librptadv-codec-dialogic1 (= ${binary:Version}), librptadv-codec-ffmpeg1 (= ${binary:Version}), ${misc:Depends}
+Description: protocol-neutral codec provider development contract
+ Public C header and development links for independently loaded providers.
+
+Package: librptadv-codec-pcm1
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: protocol-neutral signed PCM codec provider
+ Versioned big-endian 8 kHz and little-endian 16 kHz serialization provider.
+
+Package: librptadv-codec-gsm1
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: protocol-neutral GSM FR codec provider
+ Independent shared provider using the released dynamic libgsm library.
+
+Package: librptadv-codec-opus1
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: protocol-neutral mono Opus codec provider
+ Independent shared provider using the released dynamic libopus library.
+
+Package: librptadv-codec-speex1
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: protocol-neutral narrowband and wideband Speex provider
+ Independent shared provider using the released dynamic libspeex library.
+
+Package: librptadv-codec-spandsp1
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: protocol-neutral G726, G722 and LPC10 providers
+ Independent shared provider using the released dynamic SpanDSP library.
+
+Package: librptadv-codec-bcg7291
+Architecture: any
+Depends: librptadv-bcg729-gpl2-0 (= ${binary:Version}), ${shlibs:Depends}, ${misc:Depends}
+Description: protocol-neutral G729A codec provider
+ Independent provider using a separately packaged GPL2-compatible bcg729 release.
+
+Package: librptadv-codec-ilbc1
+Architecture: any
+Depends: librptadv-ilbc2-2 (= ${binary:Version}), ${shlibs:Depends}, ${misc:Depends}
+Description: protocol-neutral explicit-mode iLBC provider
+ Independent provider for 20 ms and 30 ms iLBC frames.
+
+Package: librptadv-codec-dialogic1
+Architecture: any
+Depends: librptadv-dialogic1 (= ${binary:Version}), ${shlibs:Depends}, ${misc:Depends}
+Description: protocol-neutral Dialogic ADPCM provider
+ Independent provider using the released host-free Asterisk codec primitive.
+
+Package: librptadv-codec-ffmpeg1
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: protocol-neutral G723 codec provider
+ Independent G723 provider using dynamically linked avcodec and avutil.
+
+Package: librptadv-bcg729-gpl2-0
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: pinned GPL2-compatible bcg729 1.0.4 shared backend
+ Version-qualified shared backend, separate from current GPL3 bcg729 libraries.
+
+Package: librptadv-ilbc2-2
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: pinned libilbc 2.0.2 shared backend
+ Version-qualified shared backend from the reviewed upstream release.
+
+Package: librptadv-dialogic1
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: host-free released Asterisk Dialogic codec primitive
+ Independent dynamic primitive with no Asterisk runtime dependency.

@@ -1,0 +1,7 @@
+cmake_minimum_required(VERSION 3.5)
+project(rptadv_dialogic C)
+add_library(rptadv_dialogic SHARED dialogic.c)
+target_include_directories(rptadv_dialogic PRIVATE "${GENERATED_DIR}")
+target_compile_options(rptadv_dialogic PRIVATE -Wall -Wextra -Werror)
+set_target_properties(rptadv_dialogic PROPERTIES VERSION 1.0.0 SOVERSION 1)
+install(TARGETS rptadv_dialogic LIBRARY DESTINATION lib)

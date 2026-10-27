@@ -1,0 +1,5 @@
+cmake_minimum_required(VERSION 3.5)
+project(rptadv_ilbc2 C)
+set(BUILD_SHARED_LIBS ON CACHE BOOL "" FORCE)
+add_subdirectory("${UPSTREAM_SOURCE_DIR}" upstream)
+set_target_properties(ilbc PROPERTIES OUTPUT_NAME rptadv_ilbc2 VERSION 2.0.2 SOVERSION 2)
