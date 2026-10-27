@@ -1,0 +1,22 @@
+name: Focused codec tests
+on:
+  workflow_dispatch:
+    inputs:
+      source_sha:
+        description: Exact codec feature commit to test
+        required: true
+        type: string
+      target:
+        description: Focused verification target
+        required: true
+        type: choice
+        options: [test, abi-check, install-check, package-check, docs, lint, static-analysis]
+permissions:
+  contents: read
+  packages: read
+jobs:
+  focused:
+    uses: cpeter1207/rptadv-shared-library-workflows/.github/workflows/codec-focused.yml@ci/codec-provider-image
+    with:
+      source_sha: ${{ inputs.source_sha }}
+      target: ${{ inputs.target }}
