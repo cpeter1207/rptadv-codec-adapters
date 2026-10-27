@@ -19,7 +19,7 @@ EXTERNAL_SOURCES := $(shell find packaging/external -type f ! -name '*.pyc')
 export RPTADV_CODEC_BACKEND_LIBDIR ?= $(CURDIR)/build/backends/lib
 export LD_LIBRARY_PATH := $(RPTADV_CODEC_BACKEND_LIBDIR)$(if $(LD_LIBRARY_PATH),:$(LD_LIBRARY_PATH))
 
-.PHONY: all external backend-check sources-check test abi-check lint static-analysis docs quality install install-check coverage coverage-foundations package-check debian-package-check platform-verify clean
+.PHONY: all external backend-check sources-check test abi-check lint static-analysis docs quality install install-check coverage coverage-foundations coverage-codecs package-check debian-package-check platform-verify clean
 
 all: $(addprefix build/,$(SONAMES))
 
@@ -117,6 +117,9 @@ coverage:
 
 coverage-foundations:
 	$(MAKE) coverage COVERAGE_EXCLUDE='rust/(bcg729|gsm|ffmpeg|ilbc|opus|spandsp|speex)/'
+
+coverage-codecs:
+	$(MAKE) coverage COVERAGE_EXCLUDE='rust/(provider|g711|pcm|dialogic)/|glue[.]c'
 
 package-check: all
 	set -eu; stage=$$(mktemp -d "$(CURDIR)/build/package.XXXXXX"); \
