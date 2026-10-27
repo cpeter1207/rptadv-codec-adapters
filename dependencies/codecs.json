@@ -67,7 +67,7 @@
       "gpl2_compatible_reviewed": true,
       "build_flags": ["separately packaged dynamic 1.0.4 library", "never substitute current GPL3-only release", "VAD disabled"],
       "formats": ["g729"],
-      "fixture_sources": ["bcg729 1.0.4 independent ITU test vectors; Asterisk 20 G729 sample frames"]
+      "fixture_sources": ["ITU G.729 Release 3 Annex A vectors, privately fetched for conformance; Asterisk 20.21 format_g729.c framing (no bundled G729 sample)"]
     },
     {
       "backend": "ilbc",
@@ -78,7 +78,7 @@
       "gpl2_compatible_reviewed": true,
       "build_flags": ["separately packaged shared 2.0.2 library", "explicit 20/30ms contexts", "no Abseil dependency"],
       "formats": ["ilbc"],
-      "fixture_sources": ["Asterisk 20.21.0 codecs/codec_ilbc.c; released libilbc test vectors"]
+      "fixture_sources": ["Asterisk 20.21.0 codecs/codec_ilbc.c: attribute-free IAX uses 30ms/50bytes; released libilbc test vectors"]
     },
     {
       "backend": "dialogic",

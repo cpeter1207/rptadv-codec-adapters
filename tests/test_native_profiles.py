@@ -15,7 +15,22 @@ DIRECTORY = Path(
 )
 
 
-class NativeProfiles(unittest.TestCase):
+class ProviderHarness(unittest.TestCase):
+    def api(self, backend, profile, frames, mode=0):
+        library = c.CDLL(str(DIRECTORY / f"librptadv_codec_{backend}.so"))
+        library.rptadv_codec_descriptor_v1.restype = c.POINTER(Descriptor)
+        api = library.rptadv_codec_descriptor_v1().contents
+        handles = []
+        config = Config(c.sizeof(Config), profile, mode, frames, 65503)
+        for open_context in (api.open_encoder, api.open_decoder):
+            handle = c.c_void_p()
+            self.assertEqual(open_context(c.byref(config), c.byref(handle)), 0)
+            self.addCleanup(api.destroy, handle)
+            handles.append(handle)
+        return library, api, handles
+
+
+class NativeProfiles(ProviderHarness):
     def test_profile_released_peer_fixtures(self):
         fixtures = json.loads(
             (Path(__file__).parent / "fixtures/asl_frames.json").read_text()
@@ -69,18 +84,62 @@ class NativeProfiles(unittest.TestCase):
                 self.assertEqual(info.frames, fixture["frames"])
                 self.assertTrue(library)
 
-    def api(self, backend, profile, frames):
-        library = c.CDLL(str(DIRECTORY / f"librptadv_codec_{backend}.so"))
-        library.rptadv_codec_descriptor_v1.restype = c.POINTER(Descriptor)
-        api = library.rptadv_codec_descriptor_v1().contents
-        handles = []
-        config = Config(c.sizeof(Config), profile, 0, frames, 65503)
-        for open_context in (api.open_encoder, api.open_decoder):
-            handle = c.c_void_p()
-            self.assertEqual(open_context(c.byref(config), c.byref(handle)), 0)
-            self.addCleanup(api.destroy, handle)
-            handles.append(handle)
-        return library, api, handles
+    def test_profile_dialogic_exact_asterisk_arithmetic(self):
+        library, api, (encoder, decoder) = self.api("dialogic", 6, 2)
+        packet = (c.c_uint8 * 1)(0x42)
+        pcm = (c.c_float * 2)()
+        count = c.c_size_t()
+        self.assertEqual(api.decode(decoder, packet, 1, pcm, 2, c.byref(count)), 0)
+        self.assertEqual(list(pcm), [288 / 32768, 480 / 32768])
+        output = (c.c_uint8 * 1)()
+        result = Encoded(struct_size=c.sizeof(Encoded))
+        self.assertEqual(api.encode(encoder, pcm, 2, output, 1, 0, c.byref(result)), 0)
+        self.assertEqual(bytes(output), b"\x42")
+        self.assertTrue(library)
+
+    def test_profile_g729_units_and_sid(self):
+        library, api, (encoder, decoder) = self.api("bcg729", 9, 80)
+        pcm = (c.c_float * 80)()
+        packet = (c.c_uint8 * 10)()
+        result = Encoded(struct_size=c.sizeof(Encoded))
+        self.assertEqual(
+            api.encode(encoder, pcm, 80, packet, 10, 0, c.byref(result)), 0
+        )
+        self.assertEqual((result.encoded_bytes, result.packet_frames), (10, 80))
+        info = Packet(struct_size=c.sizeof(Packet))
+        for length, expected in [(10, 80), (2, 80), (0, 0)]:
+            self.assertEqual(api.inspect(decoder, packet, length, c.byref(info)), 0)
+            self.assertEqual(info.frames, expected)
+        self.assertEqual(api.inspect(decoder, packet, 9, c.byref(info)), 3)
+        count = c.c_size_t()
+        self.assertEqual(api.decode(decoder, packet, 10, pcm, 80, c.byref(count)), 0)
+        self.assertTrue(library)
+
+    def test_profile_ilbc_explicit_modes(self):
+        for mode, frames, size in [(20, 160, 38), (30, 240, 50)]:
+            with self.subTest(mode=mode):
+                library, api, (encoder, decoder) = self.api("ilbc", 11, frames, mode)
+                pcm = (c.c_float * frames)()
+                packet = (c.c_uint8 * size)()
+                result = Encoded(struct_size=c.sizeof(Encoded))
+                self.assertEqual(
+                    api.encode(encoder, pcm, frames, packet, size, 0, c.byref(result)),
+                    0,
+                )
+                self.assertEqual(
+                    (result.encoded_bytes, result.packet_frames), (size, frames)
+                )
+                info = Packet(struct_size=c.sizeof(Packet))
+                self.assertEqual(
+                    api.inspect(decoder, packet, size - 1, c.byref(info)), 3
+                )
+                self.assertEqual(api.inspect(decoder, packet, size, c.byref(info)), 0)
+                self.assertEqual((info.frames, info.mode), (frames, mode))
+                count = c.c_size_t()
+                self.assertEqual(
+                    api.decode(decoder, packet, size, pcm, frames, c.byref(count)), 0
+                )
+                self.assertTrue(library)
 
     def test_profile_gsm_peer_fixture(self):
         # Asterisk 20.21.0 codecs/ex_gsm.h (GPL-2.0, Digium 2008), not WAV49.

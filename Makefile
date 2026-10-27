@@ -7,17 +7,20 @@ MULTIARCH := $(shell dpkg-architecture -qDEB_HOST_MULTIARCH)
 LIBDIR ?= $(PREFIX)/lib/$(MULTIARCH)
 DESTDIR ?=
 VERSION := 0.1.0-alpha1
-BACKENDS := g711 pcm gsm opus speex spandsp
+BACKENDS := g711 pcm gsm opus speex spandsp bcg729 ilbc dialogic ffmpeg
 LIBRARIES := $(addprefix librptadv_codec_,$(BACKENDS))
 SONAMES := $(addsuffix .so.1,$(LIBRARIES))
 LIBVERSION := 1.0.0
-RUST_SOURCES := $(shell find rust -name '*.rs' -type f)
+RUST_SOURCES := $(shell find rust -type f \( -name '*.rs' -o -name '*.c' -o -name 'Cargo.toml' \))
+EXTERNAL_SOURCES := $(shell find packaging/external -type f ! -name '*.pyc')
+export RPTADV_CODEC_BACKEND_LIBDIR ?= $(CURDIR)/build/backends/lib
+export LD_LIBRARY_PATH := $(RPTADV_CODEC_BACKEND_LIBDIR)$(if $(LD_LIBRARY_PATH),:$(LD_LIBRARY_PATH))
 
-.PHONY: all sources-check test abi-check lint static-analysis docs quality install install-check coverage package-check debian-package-check platform-verify clean
+.PHONY: all external backend-check sources-check test abi-check lint static-analysis docs quality install install-check coverage package-check debian-package-check platform-verify clean
 
 all: $(addprefix build/,$(SONAMES))
 
-build/librptadv_codec_%.so.1: Cargo.toml Cargo.lock $(RUST_SOURCES)
+build/librptadv_codec_%.so.1: Cargo.toml Cargo.lock $(RUST_SOURCES) rust/ffmpeg/src/glue.c | backend-check
 	$(CARGO) rustc -p rptadv-codec-$* --release --locked -- -C link-arg=-Wl,-soname,librptadv_codec_$*.so.1
 	mkdir -p build
 	cp target/release/librptadv_codec_$*.so build/librptadv_codec_$*.so.$(LIBVERSION)
@@ -25,6 +28,19 @@ build/librptadv_codec_%.so.1: Cargo.toml Cargo.lock $(RUST_SOURCES)
 	ln -sfn librptadv_codec_$*.so.1 build/librptadv_codec_$*.so
 	readelf -d $@ | grep -F 'librptadv_codec_$*.so.1'
 	! readelf -d $@ | grep -E 'libasterisk|libportaudio|libasound|res_usbradio'
+
+backend-check:
+	test -f "$(RPTADV_CODEC_BACKEND_LIBDIR)/librptadv_bcg729_gpl2.so.0"
+	test -f "$(RPTADV_CODEC_BACKEND_LIBDIR)/librptadv_ilbc2.so.2"
+	test -f "$(RPTADV_CODEC_BACKEND_LIBDIR)/librptadv_dialogic.so.1"
+
+external: build/backends/.built
+
+build/backends/.built: dependencies/codecs.json $(EXTERNAL_SOURCES)
+	$(PYTHON) packaging/external/build.py bcg729 --prefix build/backends
+	$(PYTHON) packaging/external/build.py ilbc --prefix build/backends
+	$(PYTHON) packaging/external/build.py dialogic --prefix build/backends
+	touch $@
 
 sources-check:
 	$(PYTHON) -m unittest discover -s tests -p test_sources.py
@@ -40,13 +56,13 @@ abi-check: all
 
 lint:
 	$(CARGO) fmt --all -- --check
-	ruff format --check tests
-	ruff check tests
-	clang-format --dry-run --Werror include/rptadv_codec.h tests/abi_header_smoke.c
+	ruff format --check tests packaging
+	ruff check tests packaging
+	clang-format --dry-run --Werror include/rptadv_codec.h tests/abi_header_smoke.c rust/ffmpeg/src/glue.c packaging/external/dialogic/dialogic.c
 
 static-analysis:
 	$(CARGO) clippy --workspace --all-targets --locked -- -D warnings
-	cppcheck --enable=warning,style,performance,portability --error-exitcode=1 --force --std=c11 -Iinclude tests/abi_header_smoke.c
+	cppcheck --enable=warning,style,performance,portability --error-exitcode=1 --force --std=c11 -Iinclude tests/abi_header_smoke.c rust/ffmpeg/src/glue.c packaging/external/dialogic/dialogic.c
 
 docs:
 	mkdir -p build
@@ -62,6 +78,11 @@ install: all
 	  install -m 0755 build/$$library.so.$(LIBVERSION) $(DESTDIR)$(LIBDIR)/; \
 	  ln -sfn $$library.so.$(LIBVERSION) $(DESTDIR)$(LIBDIR)/$$library.so.1; \
 	  ln -sfn $$library.so.1 $(DESTDIR)$(LIBDIR)/$$library.so; \
+	done
+	cp -a "$(RPTADV_CODEC_BACKEND_LIBDIR)"/librptadv_bcg729_gpl2.so* "$(RPTADV_CODEC_BACKEND_LIBDIR)"/librptadv_ilbc2.so* "$(RPTADV_CODEC_BACKEND_LIBDIR)"/librptadv_dialogic.so* $(DESTDIR)$(LIBDIR)/
+	for backend in bcg729 ilbc dialogic; do \
+	  install -d $(DESTDIR)$(PREFIX)/share/doc/rptadv-$$backend; \
+	  install -m 0644 "$(RPTADV_CODEC_BACKEND_LIBDIR)/../share/doc/rptadv-$$backend/copyright.upstream" $(DESTDIR)$(PREFIX)/share/doc/rptadv-$$backend/; \
 	done
 	install -m 0644 include/rptadv_codec.h $(DESTDIR)$(PREFIX)/include/rptadv-codec/
 	sed -e 's|@PREFIX@|$(PREFIX)|' -e 's|@LIBDIR@|$(LIBDIR)|' rptadv_codec.pc.in > $(DESTDIR)$(LIBDIR)/pkgconfig/rptadv_codec.pc

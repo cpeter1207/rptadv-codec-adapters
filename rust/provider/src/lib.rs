@@ -19,6 +19,10 @@ pub trait Backend: Sized {
     fn open(config: &Config, encoder: bool) -> Result<Self, Status>;
     /// Encoding unit: source frames and maximum encoded bytes.
     fn unit(&self) -> (usize, usize);
+    /// Profile-local mode reported for a validated packet (zero for single-mode profiles).
+    fn packet_mode(&self, _packet: &[u8]) -> u32 {
+        0
+    }
     /// Inspect a complete nonempty packet without modifying decoder history.
     fn inspect(&self, packet: &[u8]) -> Result<u32, Status>;
     /// Encode complete units. Output is already large enough for the maximum.
@@ -167,7 +171,7 @@ unsafe extern "C" fn inspect<B: Backend>(
                 out.write(PacketInfo {
                     struct_size: size_of::<PacketInfo>() as u32,
                     frames,
-                    mode: 0,
+                    mode: context.backend.packet_mode(input(packet, bytes)),
                     required_capacity: 0,
                 });
             }

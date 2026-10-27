@@ -4,10 +4,11 @@
 	dh $@
 
 override_dh_auto_build:
-	$(MAKE) all
+	$(MAKE) external
+	$(MAKE) all RPTADV_CODEC_BACKEND_LIBDIR=$(CURDIR)/build/backends/lib
 
 override_dh_auto_test:
-	$(MAKE) test
+	$(MAKE) test RPTADV_CODEC_BACKEND_LIBDIR=$(CURDIR)/build/backends/lib
 
 override_dh_auto_install:
-	$(MAKE) DESTDIR=$(CURDIR)/debian/tmp install
+	$(MAKE) DESTDIR=$(CURDIR)/debian/tmp RPTADV_CODEC_BACKEND_LIBDIR=$(CURDIR)/build/backends/lib install

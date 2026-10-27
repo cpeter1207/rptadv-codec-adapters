@@ -1,0 +1,14 @@
+[package]
+name = "rptadv-codec-ilbc"
+build = "../backend_link.rs"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+rptadv-codec-contract = { path = "../contract" }
+rptadv-codec-provider = { path = "../provider" }

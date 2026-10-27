@@ -1,7 +1,7 @@
 PROJECT_NAME = "RPT Advanced codec adapters"
 OUTPUT_DIRECTORY = build/developer-docs
-INPUT = include
-FILE_PATTERNS = *.h
+INPUT = include rust/ffmpeg/src/glue.c packaging/external/dialogic/dialogic.c
+FILE_PATTERNS = *.h *.c
 RECURSIVE = YES
 EXTRACT_ALL = YES
 QUIET = YES

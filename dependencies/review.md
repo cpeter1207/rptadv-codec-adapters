@@ -38,3 +38,25 @@ G.711 endpoint vectors, the pinned Asterisk GSM/Speex/G.722/G.726/LPC10 packets,
 and an independently produced 60 ms libopus packet. This is initial framing and
 ABI evidence, not a claim that every direction/mode has complete conformance or
 coverage. Source fixtures retain Digium's GPL-2.0 attribution in their manifest.
+
+The native FFmpeg runtime is Debian 13 `7.1.5-0+deb13u1+rpt2`, not the reference
+7.1.1 archive. Its configuration disables version3 and nonfree components.
+Primary-source comparison against n7.1.5 found identical G.723 common/decoder
+sources and LGPL notices; the encoder's minimum-error accumulator was widened
+to int64. Independent FATE `ineqd53.tco`/`overd63p.tco` decode successfully.
+Keep source hashes distinct from binary identity. Public FATE test bytes are
+hash-verified private downloads, not redistributed in source/packages.
+
+External backends build from verified archives into qualified DSOs:
+`librptadv_bcg729_gpl2.so.0`, `librptadv_ilbc2.so.2` and
+`librptadv_dialogic.so.1`. Their upstream copyright files ship separately.
+The Dialogic build extracts only the released primitive before Asterisk glue;
+the one bounded negative left shift is replaced with multiplication by 16,
+preserving every output while avoiding undefined C arithmetic.
+
+Plain Asterisk 20.21.0 IAX uses attribute-free iLBC at 30 ms/50 bytes. The
+translator defaults to mode 30; its SDP attribute default of 20 does not
+negotiate IAX mode. Support both explicit modes without guessing aggregated
+packet lengths. G.729 Annex A vectors exist in ITU's Release 3 archive;
+redistribution permission was not established, so fetch them privately for
+tests rather than labeling them GPL fixtures. Asterisk has no ex_g729.h.
