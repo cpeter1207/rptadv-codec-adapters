@@ -312,7 +312,16 @@ class NativeProfiles(ProviderHarness):
             self.assertEqual(info.frames, expected)
         self.assertEqual(api.inspect(decoder, packet, 9, c.byref(info)), 3)
         count = c.c_size_t()
-        self.assertEqual(api.decode(decoder, packet, 10, pcm, 80, c.byref(count)), 0)
+        for length in [2, 10, 12]:
+            payload = (c.c_uint8 * length)()
+            frames = math.ceil(length / 10) * 80
+            decoded = (c.c_float * frames)()
+            self.assertEqual(
+                api.decode(decoder, payload, length, decoded, frames, c.byref(count)),
+                0,
+            )
+            self.assertEqual(count.value, frames)
+            self.assertTrue(all(math.isfinite(sample) for sample in decoded))
         self.assertTrue(library)
 
     def test_profile_ilbc_explicit_modes(self):

@@ -29,6 +29,15 @@ extern "C" fn decode_return(_: *mut c_void, _: *const u8, _: c_int, _: *mut i16)
 fn failed_dependency_results_and_invalid_spans_do_not_publish_audio() {
     let mut encoder = G723::new(true, 6300).unwrap();
     let mut decoder = G723::new(false, 5300).unwrap();
+    for (packet, mode) in [
+        (&[][..], 5300),
+        (&[0][..], 6300),
+        (&[1][..], 5300),
+        (&[2][..], 5300),
+        (&[3][..], 5300),
+    ] {
+        assert_eq!(decoder.packet_mode(packet), mode);
+    }
     assert_eq!(
         encoder.encode(&[0.0; 240], &mut [0; 24]),
         Err(Status::Failed)

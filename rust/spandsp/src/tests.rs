@@ -9,6 +9,8 @@ extern "C" fn short_decode(_: *mut c_void, _: *mut i16, _: *const u8, _: c_int) 
 
 #[test]
 fn short_native_output_is_not_published_as_a_complete_frame() {
+    let lpc = Span::new(8, false).unwrap();
+    assert_eq!(lpc.inspect(&[0]), Err(Status::Malformed));
     let mut codec = Span::new(5, false).unwrap();
     assert_eq!(codec.decode(&[0; 1], &mut [0.0; 2]), Err(Status::Failed));
 }
