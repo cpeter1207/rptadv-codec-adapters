@@ -214,6 +214,7 @@ def reference(test, backend, profile, frames, mode):
 
 class ReleasedReference(ProviderHarness):
     def test_released_encode_and_decode_signal_output(self):
+        packing = {}
         for backend, profile, frames, _, mode, _ in PROFILES:
             if backend in ("g711", "pcm", "dialogic", "ffmpeg"):
                 continue  # Independent boundary/FATE fixtures live in existing tests.
@@ -243,6 +244,8 @@ class ReleasedReference(ProviderHarness):
                     self.assertEqual(
                         bytes(actual[: result.encoded_bytes]), bytes(expected)[:size]
                     )
+                    if profile in (5, 12):
+                        packing[profile] = bytes(actual[: result.encoded_bytes])
                     expected_pcm = (
                         (c.c_float * frames)() if floating else (c.c_int16 * frames)()
                     )
@@ -262,6 +265,10 @@ class ReleasedReference(ProviderHarness):
                         else [x / 32768 for x in expected_pcm]
                     )
                     self.assertEqual(list(actual_pcm), values)
+        self.assertNotEqual(packing[5], packing[12])
+        self.assertEqual(
+            packing[5], bytes((b >> 4) | ((b & 15) << 4) for b in packing[12])
+        )
 
     def test_g723_matches_ffmpeg_command_output(self):
         """Use the separate released command, not provider glue, as the oracle."""

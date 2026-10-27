@@ -3,6 +3,7 @@
 import ctypes as c
 import hashlib
 import os
+import subprocess
 import urllib.request
 from pathlib import Path
 
@@ -56,6 +57,7 @@ class G723(ProviderHarness):
             data = fixture.read_bytes()
             self.assertEqual(hashlib.sha256(data).hexdigest(), expected)
             self.assertEqual(api.reset(decoder), 0)
+            actual_pcm = bytearray()
             for start in range(0, len(data), size):
                 encoded = (c.c_uint8 * size).from_buffer_copy(
                     data[start : start + size]
@@ -67,4 +69,29 @@ class G723(ProviderHarness):
                     api.decode(decoder, encoded, size, pcm, 240, c.byref(frames)), 0
                 )
                 self.assertEqual(frames.value, 240)
+                actual_pcm.extend(
+                    bytes((c.c_int16 * 240)(*(int(x * 32768) for x in pcm)))
+                )
+            reference = subprocess.run(
+                [
+                    "ffmpeg",
+                    "-hide_banner",
+                    "-loglevel",
+                    "error",
+                    "-f",
+                    "g723_1",
+                    "-postfilter",
+                    "1",
+                    "-i",
+                    "pipe:0",
+                    "-f",
+                    "s16le",
+                    "pipe:1",
+                ],
+                input=data,
+                capture_output=True,
+                check=True,
+                timeout=30,
+            ).stdout
+            self.assertEqual(bytes(actual_pcm), reference)
         self.assertTrue(library)
