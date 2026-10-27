@@ -1,0 +1,20 @@
+Source: rptadv-codec-adapters
+Section: libs
+Priority: optional
+Maintainer: Chris Peterson <cpeter1207@users.noreply.github.com>
+Build-Depends: debhelper-compat (= 13), cargo, rustc, python3
+Standards-Version: 4.7.0
+Rules-Requires-Root: no
+
+Package: librptadv-codec-g7111
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: protocol-neutral G.711 codec provider
+ Versioned shared mu-law and A-law provider for RPT Advanced link adapters.
+
+Package: librptadv-codec-dev
+Section: libdevel
+Architecture: any
+Depends: librptadv-codec-g7111 (= ${binary:Version}), ${misc:Depends}
+Description: protocol-neutral codec provider development contract
+ Public C header and development links for independently loaded providers.

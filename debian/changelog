@@ -1,0 +1,5 @@
+rptadv-codec-adapters (0.1.0~alpha1-1.deb13) unstable; urgency=medium
+
+  * Establish versioned protocol-neutral codec provider contract.
+
+ -- Chris Peterson <cpeter1207@users.noreply.github.com>  Tue, 27 Oct 2026 10:00:00 -0500

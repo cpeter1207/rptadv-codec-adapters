@@ -1,0 +1,108 @@
+{
+  "active_formats": ["g723", "gsm", "ulaw", "alaw", "g726aal2", "adpcm", "slin", "lpc10", "g729", "speex", "ilbc", "g726", "g722", "slin16", "speex16", "opus"],
+  "deferred_formats": ["siren7", "siren14", "g719"],
+  "trivial_formats": ["slin", "slin16"],
+  "sources": [
+    {
+      "backend": "g711",
+      "release": "audio-codec-algorithms 0.7.0",
+      "url": "https://static.crates.io/crates/audio-codec-algorithms/audio-codec-algorithms-0.7.0.crate",
+      "sha256": "33f15622964e2d1f08cec8eb6fc6df40dd987c47be617ba010de330d5d837c98",
+      "license_evidence": ["audio-codec-algorithms-0.7.0/LICENSE-0BSD"],
+      "gpl2_compatible_reviewed": true,
+      "build_flags": ["select 0BSD license", "default-features=false"],
+      "formats": ["ulaw", "alaw"],
+      "fixture_sources": ["G.711 codeword endpoint tables; independent scalar values"]
+    },
+    {
+      "backend": "gsm",
+      "release": "libgsm 1.0.22",
+      "url": "https://www.quut.com/gsm/gsm-1.0.22.tar.gz",
+      "sha256": "f0072e91f6bb85a878b2f6dbf4a0b7c850c4deb8049d554c65340b3bf69df0ac",
+      "license_evidence": ["gsm-1.0-pl22/COPYRIGHT, 1994 terms and 2009 explicit redistribution permission"],
+      "gpl2_compatible_reviewed": true,
+      "build_flags": ["shared system libgsm", "WAV49 disabled"],
+      "formats": ["gsm"],
+      "fixture_sources": ["Asterisk 20.21.0 codecs/codec_gsm.c and codecs/ex_gsm.h"]
+    },
+    {
+      "backend": "speex",
+      "release": "Speex 1.2.1",
+      "url": "https://downloads.xiph.org/releases/speex/speex-1.2.1.tar.gz",
+      "sha256": "4b44d4f2b38a370a2d98a78329fefc56a0cf93d1c1be70029217baae6628feea",
+      "license_evidence": ["speex-1.2.1/COPYING, BSD 3-clause"],
+      "gpl2_compatible_reviewed": true,
+      "build_flags": ["shared system libspeex", "raw NB/WB frames", "encoder DTX disabled"],
+      "formats": ["speex", "speex16"],
+      "fixture_sources": ["Asterisk 20.21.0 codecs/codec_speex.c"]
+    },
+    {
+      "backend": "opus",
+      "release": "Opus 1.5.2",
+      "url": "https://downloads.xiph.org/releases/opus/opus-1.5.2.tar.gz",
+      "sha256": "65c1d2f78b9f2fb20082c38cbe47c951ad5839345876e46941612ee87f9a7ce1",
+      "license_evidence": ["opus-1.5.2/COPYING, BSD 3-clause and referenced patent-license notices"],
+      "gpl2_compatible_reviewed": true,
+      "build_flags": ["shared system libopus", "mono 48000Hz", "20ms encoder packets", "DTX disabled"],
+      "formats": ["opus"],
+      "fixture_sources": ["Opus released test vectors and opus_packet_get_nb_samples"]
+    },
+    {
+      "backend": "spandsp",
+      "release": "SpanDSP 0.0.6",
+      "url": "https://archive.debian.org/debian/pool/main/s/spandsp/spandsp_0.0.6.orig.tar.gz",
+      "sha256": "cc053ac67e8ac4bb992f258fd94f275a7872df959f6a87763965feabfdcc9465",
+      "license_evidence": ["spandsp-0.0.6/COPYING", "src/g726.c, src/g722.c and LPC10 source: LGPL-2.1"],
+      "gpl2_compatible_reviewed": true,
+      "build_flags": ["dynamic libspandsp.so.2", "G726 32000 linear LEFT/RIGHT packing", "G722 64000 options=0", "LPC10 error_correction=1"],
+      "formats": ["g726aal2", "g726", "g722", "lpc10"],
+      "fixture_sources": ["Asterisk 20.21.0 G726/G722/LPC10 codecs and sample frames"]
+    },
+    {
+      "backend": "bcg729",
+      "release": "bcg729 1.0.4",
+      "url": "https://github.com/BelledonneCommunications/bcg729/archive/refs/tags/1.0.4.tar.gz",
+      "sha256": "94b3542a06cbd96306efc19f959f9febae62806a22599063f82a8c33e989d48b",
+      "license_evidence": ["bcg729-1.0.4/COPYING", "include/bcg729/encoder.h: GPL-2.0-or-later"],
+      "gpl2_compatible_reviewed": true,
+      "build_flags": ["separately packaged dynamic 1.0.4 library", "never substitute current GPL3-only release", "VAD disabled"],
+      "formats": ["g729"],
+      "fixture_sources": ["bcg729 1.0.4 independent ITU test vectors; Asterisk 20 G729 sample frames"]
+    },
+    {
+      "backend": "ilbc",
+      "release": "libilbc 2.0.2",
+      "url": "https://github.com/TimothyGu/libilbc/releases/download/v2.0.2/libilbc-2.0.2.tar.gz",
+      "sha256": "84d5c99087a35bda3463bcb993245b4f8c28c04fe037215a5ec56570f68ce519",
+      "license_evidence": ["libilbc-2.0.2/COPYING and bundled WebRTC signal-processing notices: BSD 3-clause; PATENTS file absent, no separate patent grant claimed"],
+      "gpl2_compatible_reviewed": true,
+      "build_flags": ["separately packaged shared 2.0.2 library", "explicit 20/30ms contexts", "no Abseil dependency"],
+      "formats": ["ilbc"],
+      "fixture_sources": ["Asterisk 20.21.0 codecs/codec_ilbc.c; released libilbc test vectors"]
+    },
+    {
+      "backend": "dialogic",
+      "release": "Asterisk 20.21.0 codec_adpcm.c primitive",
+      "url": "https://downloads.asterisk.org/pub/telephony/asterisk/old-releases/asterisk-20.21.0.tar.gz",
+      "sha256": "13fd6e8f1fbb19a3174af82a388dd72c87eb2c92d32fca83c4d51bfab03f686a",
+      "license_evidence": ["asterisk-20.21.0/LICENSE", "asterisk-20.21.0/COPYING", "codecs/codec_adpcm.c: GPL-2.0"],
+      "gpl2_compatible_reviewed": true,
+      "build_flags": ["separately packaged shared primitive only, no Asterisk host wrapper", "NOT_BLI disabled", "AUTO_RETURN disabled", "high nibble first"],
+      "formats": ["adpcm"],
+      "fixture_sources": ["Asterisk 20.21.0 reset decoder payload 0x42 -> PCM16 [288,480]; codecs/ex_adpcm.h"]
+    },
+    {
+      "backend": "ffmpeg",
+      "release": "FFmpeg 7.1.1",
+      "url": "https://github.com/FFmpeg/FFmpeg/archive/refs/tags/n7.1.1.tar.gz",
+      "sha256": "f117507dc501f2a6c11f9241d8d0c3213846cfad91764361af37befd6b6c523d",
+      "license_evidence": ["FFmpeg n7.1.1 LICENSE.md", "libavcodec/g723_1enc.c and g723_1dec.c: LGPL-2.1-or-later"],
+      "gpl2_compatible_reviewed": true,
+      "build_flags": ["dynamic avcodec+avutil only", "disable version3/nonfree dependencies", "verify linked library configuration", "G726 excluded: 256ms fixed encoder frame"],
+      "formats": ["g723"],
+      "encode_modes": {"g723": [6300]},
+      "decode_modes": {"g723": [5300, 6300]},
+      "fixture_sources": ["Asterisk 20.21.0 G723 sample frames; FFmpeg 7.1.1 G723 framing table {24,20,4,1} bytes per 240 samples"]
+    }
+  ]
+}
