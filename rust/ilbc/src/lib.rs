@@ -129,6 +129,19 @@ impl Backend for Ilbc {
         if packet.len() % bytes != 0 {
             return Err(Status::Malformed);
         }
+        // libilbc 2.0.2 DecodeImpl silently conceals invalid startIdx/final-bit
+        // values. Preflight every unit before any decoder history is changed;
+        // concealment belongs exclusively to the caller's shared PCM ring.
+        for unit in packet.chunks_exact(bytes) {
+            let valid_start = if self.mode == 20 {
+                ((unit[2] >> 2) & 3) != 0
+            } else {
+                (1..=5).contains(&((unit[5] >> 5) & 7))
+            };
+            if !valid_start || unit[bytes - 1] & 1 != 0 {
+                return Err(Status::Malformed);
+            }
+        }
         u32::try_from(packet.len() / bytes * frames).map_err(|_| Status::Malformed)
     }
     fn encode(&mut self, pcm: &[f32], out: &mut [u8]) -> Result<usize, Status> {
