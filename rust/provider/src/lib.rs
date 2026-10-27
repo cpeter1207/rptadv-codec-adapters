@@ -319,7 +319,17 @@ unsafe extern "C" fn decode<B: Backend>(
         .decode(packet, unsafe { output(out, required) })
     {
         Ok(n) if n == required => Status::Complete as i32,
-        _ => Status::Failed as i32,
+        result => {
+            // Input corruption is recoverable media loss, not a failed provider.
+            // Preserve the backend status so the owner can request native PLC.
+            unsafe {
+                frames.write(0);
+            }
+            match result {
+                Err(status) => status as i32,
+                Ok(_) => Status::Failed as i32,
+            }
+        }
     }
 }
 

@@ -32,6 +32,21 @@ class ProviderHarness(unittest.TestCase):
 
 
 class NativeProfiles(ProviderHarness):
+    def test_malformed_opus_is_input_error_not_provider_failure(self):
+        _, api, (_, decoder) = self.api("opus", 16, 960)
+        # Valid duration header, truncated VBR size field: libopus rejects the
+        # packet body instead of concealing it implicitly.
+        packet = (c.c_uint8 * 2)(0x02, 0xFF)
+        info = Packet(struct_size=c.sizeof(Packet))
+        self.assertEqual(api.inspect(decoder, packet, 2, c.byref(info)), 0)
+        self.assertEqual(info.frames, 960)
+        pcm = (c.c_float * 960)()
+        count = c.c_size_t()
+        self.assertEqual(api.decode(decoder, packet, 2, pcm, 960, c.byref(count)), 3)
+        self.assertEqual(count.value, 0)
+        self.assertEqual(api.conceal(decoder, 960, pcm, 960, c.byref(count)), 0)
+        self.assertEqual(count.value, 960)
+
     def test_native_plc_precedes_shared_ring_fallback(self):
         for backend, profile, frames, mode in [
             ("opus", 16, 960, 0),
