@@ -83,6 +83,9 @@ impl Backend for G729 {
     fn unit(&self) -> (usize, usize) {
         (80, 10)
     }
+    fn drain_frames(&self) -> Result<usize, Status> {
+        Ok(40)
+    }
     fn inspect(&self, packet: &[u8]) -> Result<u32, Status> {
         if !matches!(packet.len() % 10, 0 | 2) {
             return Err(Status::Malformed);

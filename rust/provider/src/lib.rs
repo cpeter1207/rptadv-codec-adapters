@@ -19,6 +19,11 @@ pub trait Backend: Sized {
     fn open(config: &Config, encoder: bool) -> Result<Self, Status>;
     /// Encoding unit: source frames and maximum encoded bytes.
     fn unit(&self) -> (usize, usize);
+    /// Zero-input padding needed to preserve a finite source's delayed tail.
+    /// This is a drain budget, not a claim about decoder filter delay.
+    fn drain_frames(&self) -> Result<usize, Status> {
+        Ok(0)
+    }
     /// Profile-local mode reported for a validated packet (zero for single-mode profiles).
     fn packet_mode(&self, _packet: &[u8]) -> u32 {
         0
@@ -48,6 +53,9 @@ struct Encoder {
     packet: usize,
     pending: Vec<f32>,
     position: u64,
+    wire_position: u64,
+    drain: usize,
+    finished: bool,
 }
 
 /// Produce a complete typed table for a backend without duplicating ABI glue.
@@ -122,6 +130,9 @@ unsafe fn open<B: Backend>(config: *const Config, out: *mut *mut c_void, encoder
                 packet,
                 pending,
                 position: 0,
+                wire_position: 0,
+                drain: backend.drain_frames()?,
+                finished: false,
             })
         } else {
             None
@@ -241,23 +252,42 @@ fn encode_block<B: Backend>(
     let Some(state) = &mut context.encoder else {
         return Status::Unsupported;
     };
+    if state.finished && !pcm.is_empty() {
+        return Status::Malformed;
+    }
     let count = pcm.len().min(state.packet - state.pending.len());
     let real = state.pending.len() + count;
-    let ready = real == state.packet || (flush && real != 0);
+    let Some(position) = state.position.checked_add(count as u64) else {
+        return Status::Malformed;
+    };
+    let Some(end) = position.checked_add(state.drain as u64) else {
+        return Status::Malformed;
+    };
+    let remaining = if position == 0 {
+        0
+    } else {
+        end.saturating_sub(state.wire_position)
+    };
+    let ready = real == state.packet || (flush && (real != 0 || remaining != 0));
     let (unit, bytes) = context.backend.unit();
-    let wire = real.div_ceil(unit) * unit;
+    let wire = if real != 0 {
+        real.div_ceil(unit) * unit
+    } else {
+        (remaining.min(state.packet as u64) as usize).div_ceil(unit) * unit
+    };
     let required = wire / unit * bytes;
     if ready && out.len() < required {
         result.required_capacity = required;
         return Status::OutputFull;
     }
-    let Some(position) = state.position.checked_add(count as u64) else {
+    let Some(wire_end) = state.wire_position.checked_add(wire as u64) else {
         return Status::Malformed;
     };
     state.pending.extend_from_slice(&pcm[..count]);
     state.position = position;
     result.consumed_frames = count;
     if !ready {
+        state.finished |= flush;
         return if flush {
             Status::Complete
         } else {
@@ -268,9 +298,17 @@ fn encode_block<B: Backend>(
     match context.backend.encode(&state.pending, &mut out[..required]) {
         Ok(encoded) if encoded <= required => {
             result.encoded_bytes = encoded;
-            result.source_start_frames = position - real as u64;
-            result.source_frames = real as u32;
+            let start = state
+                .wire_position
+                .saturating_sub(state.drain as u64)
+                .min(position);
+            let end = wire_end.saturating_sub(state.drain as u64).min(position);
+            result.source_start_frames = start;
+            result.source_frames = (end - start) as u32;
             result.packet_frames = if encoded == 0 { 0 } else { wire as u32 };
+            state.wire_position = wire_end;
+            state.finished |=
+                flush && count == pcm.len() && wire_end >= position + state.drain as u64;
             state.pending.clear();
             Status::Complete
         }
@@ -379,6 +417,8 @@ unsafe extern "C" fn reset<B: Backend>(context: *mut c_void) -> i32 {
     if let Some(encoder) = &mut context.encoder {
         encoder.pending.clear();
         encoder.position = 0;
+        encoder.wire_position = 0;
+        encoder.finished = false;
     }
     match context.backend.reset() {
         Ok(()) => Status::Complete as i32,
@@ -418,3 +458,6 @@ unsafe fn output<'a, T>(pointer: *mut T, count: usize) -> &'a mut [T] {
         unsafe { slice::from_raw_parts_mut(pointer, count) }
     }
 }
+
+#[cfg(test)]
+mod tests;

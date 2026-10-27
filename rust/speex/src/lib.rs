@@ -138,6 +138,15 @@ impl Backend for Speex {
     fn unit(&self) -> (usize, usize) {
         if self.wide { (320, 107) } else { (160, 63) }
     }
+    fn drain_frames(&self) -> Result<usize, Status> {
+        let mut frames: c_int = 0;
+        if unsafe { speex_encoder_ctl(self.state.as_ptr(), 39, (&mut frames as *mut c_int).cast()) }
+            != 0
+        {
+            return Err(Status::Failed);
+        }
+        usize::try_from(frames).map_err(|_| Status::Failed)
+    }
     fn inspect(&self, packet: &[u8]) -> Result<u32, Status> {
         framing::frames(packet)?
             .checked_mul(self.unit().0 as u32)

@@ -119,7 +119,7 @@ impl Backend for Span {
             sample_rate_hz: if id == 13 { 16000 } else { 8000 },
             channels: 1,
             directions: 3,
-            lookahead_frames: 0,
+            lookahead_frames: if id == 8 { 540 } else { 0 },
             maximum_frame_samples: MODES[mode].frame_samples,
             maximum_frame_bytes: MODES[mode].frame_bytes,
             mode_count: 1,
@@ -134,6 +134,10 @@ impl Backend for Span {
     }
     fn unit(&self) -> (usize, usize) {
         if self.profile == 8 { (180, 7) } else { (2, 1) }
+    }
+    fn drain_frames(&self) -> Result<usize, Status> {
+        // Released LPC10 analysis/parameter pipeline: three 180-sample calls.
+        Ok(if self.profile == 8 { 540 } else { 0 })
     }
     fn inspect(&self, packet: &[u8]) -> Result<u32, Status> {
         let (samples, bytes) = self.unit();

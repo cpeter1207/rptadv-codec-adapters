@@ -91,6 +91,9 @@ impl Backend for G723 {
     fn unit(&self) -> (usize, usize) {
         (240, 24)
     }
+    fn drain_frames(&self) -> Result<usize, Status> {
+        Ok(60)
+    }
     fn packet_mode(&self, packet: &[u8]) -> u32 {
         match packet.first().map(|header| header & 3) {
             Some(0) => 6300,

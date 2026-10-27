@@ -108,6 +108,15 @@ impl Backend for Opus {
     fn unit(&self) -> (usize, usize) {
         (960, 1275)
     }
+    fn drain_frames(&self) -> Result<usize, Status> {
+        // OPUS_GET_LOOKAHEAD is total codec preskip and its documented finite-stream
+        // compensation budget, not an encoder-only buffering measurement.
+        let mut frames: c_int = 0;
+        if unsafe { opus_encoder_ctl(self.state.as_ptr(), 4027, &mut frames as *mut c_int) } != 0 {
+            return Err(Status::Failed);
+        }
+        usize::try_from(frames).map_err(|_| Status::Failed)
+    }
     fn inspect(&self, packet: &[u8]) -> Result<u32, Status> {
         let bytes = c_int::try_from(packet.len()).map_err(|_| Status::Malformed)?;
         let frames = unsafe { opus_packet_get_nb_samples(packet.as_ptr(), bytes, 48000) };

@@ -97,16 +97,19 @@ typedef struct rptadv_codec_packet_info_v1 {
 } rptadv_codec_packet_info_v1;
 
 /** One encoder step. At most one packet is returned; zero output is not voice.
+ * Flush repeatedly with empty input until Complete returns no bytes. Delayed
+ * tail packets can consume zero new input while covering real source frames.
+ * Reset before starting another source segment after a completed finite flush.
  */
 typedef struct rptadv_codec_encode_result_v1 {
   uint32_t struct_size;         /**< Caller-supplied complete size. */
   uint32_t status;              /**< Numeric rptadv_codec_status. */
   size_t consumed_frames;       /**< Input frames consumed by this call. */
   size_t encoded_bytes;         /**< Encoded bytes produced. */
-  uint64_t source_start_frames; /**< First real frame since encoder reset. */
-  uint32_t source_frames;       /**< Real source span excluding tail padding. */
-  uint32_t packet_frames;       /**< Decoded wire span including padding. */
-  size_t required_capacity;     /**< Required bytes on output-full. */
+  uint64_t source_start_frames; /**< First real frame covered since reset. */
+  uint32_t source_frames;   /**< Covered real span; excludes priming/padding. */
+  uint32_t packet_frames;   /**< Decoded wire span including padding. */
+  size_t required_capacity; /**< Required bytes on output-full. */
 } rptadv_codec_encode_result_v1;
 
 /** Complete immutable provider table. Non-null operations are required. */

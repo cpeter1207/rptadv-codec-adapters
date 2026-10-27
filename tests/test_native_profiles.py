@@ -32,6 +32,88 @@ class ProviderHarness(unittest.TestCase):
 
 
 class NativeProfiles(ProviderHarness):
+    def test_finite_profiles_cover_real_source_and_drain_legal_tail_packets(self):
+        profiles = [
+            ("g711", 1, 160, 1, 0, 0),
+            ("g711", 2, 160, 1, 0, 0),
+            ("gsm", 3, 160, 160, 0, 0),
+            ("ffmpeg", 4, 240, 240, 6300, 60),
+            ("spandsp", 5, 160, 2, 0, 0),
+            ("dialogic", 6, 160, 2, 0, 0),
+            ("pcm", 7, 160, 1, 0, 0),
+            ("spandsp", 8, 180, 180, 0, 540),
+            ("bcg729", 9, 80, 80, 0, 40),
+            ("speex", 10, 160, 160, 0, 40),
+            ("ilbc", 11, 240, 240, 30, 0),
+            ("ilbc", 11, 160, 160, 20, 0),
+            ("spandsp", 12, 160, 2, 0, 0),
+            ("spandsp", 13, 320, 2, 0, 0),
+            ("pcm", 14, 320, 1, 0, 0),
+            ("speex", 15, 320, 320, 0, 143),
+            ("opus", 16, 960, 960, 0, 312),
+        ]
+        for backend, profile, frames, unit, mode, delay in profiles:
+            for length in {1, max(1, unit - 1), unit, frames + 1}:
+                with self.subTest(profile=profile, mode=mode, length=length):
+                    _, api, (encoder, decoder) = self.api(
+                        backend, profile, frames, mode
+                    )
+                    samples = (c.c_float * length)(
+                        *(0.2 * math.sin(i * 0.13) for i in range(length))
+                    )
+                    consumed = covered = wire = 0
+                    for _ in range(32):
+                        remaining = length - consumed
+                        result = Encoded(struct_size=c.sizeof(Encoded))
+                        packet = (c.c_uint8 * 65503)()
+                        status = api.encode(
+                            encoder,
+                            c.cast(
+                                c.byref(samples, consumed * c.sizeof(c.c_float)),
+                                c.POINTER(c.c_float),
+                            ),
+                            remaining,
+                            packet,
+                            len(packet),
+                            int(remaining == 0),
+                            c.byref(result),
+                        )
+                        self.assertIn(status, (0, 1))
+                        consumed += result.consumed_frames
+                        if result.encoded_bytes == 0:
+                            if status == 0:
+                                break
+                            continue
+                        self.assertEqual(result.source_start_frames, covered)
+                        covered += result.source_frames
+                        wire += result.packet_frames
+                        info = Packet(struct_size=c.sizeof(Packet))
+                        self.assertEqual(
+                            api.inspect(
+                                decoder, packet, result.encoded_bytes, c.byref(info)
+                            ),
+                            0,
+                        )
+                        self.assertEqual(info.frames, result.packet_frames)
+                        pcm = (c.c_float * info.frames)()
+                        count = c.c_size_t()
+                        self.assertEqual(
+                            api.decode(
+                                decoder,
+                                packet,
+                                result.encoded_bytes,
+                                pcm,
+                                len(pcm),
+                                c.byref(count),
+                            ),
+                            0,
+                        )
+                        self.assertEqual(count.value, info.frames)
+                    else:
+                        self.fail("finite encoder did not finish")
+                    self.assertEqual((consumed, covered), (length, length))
+                    self.assertEqual(wire, math.ceil((length + delay) / unit) * unit)
+
     def test_malformed_opus_is_input_error_not_provider_failure(self):
         _, api, (_, decoder) = self.api("opus", 16, 960)
         # Valid duration header, truncated VBR size field: libopus rejects the
