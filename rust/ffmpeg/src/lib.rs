@@ -163,3 +163,6 @@ static DESCRIPTOR: Descriptor = rptadv_codec_provider::descriptor::<G723>();
 pub extern "C" fn rptadv_codec_descriptor_v1() -> *const Descriptor {
     &DESCRIPTOR
 }
+
+#[cfg(test)]
+mod tests;

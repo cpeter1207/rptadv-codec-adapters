@@ -14,6 +14,7 @@ LIBVERSION := 1.0.0
 # The complete gate excludes nothing; focused targets select source parts only.
 COVERAGE_EXCLUDE ?= a^
 RUST_SOURCES := $(shell find rust -type f \( -name '*.rs' -o -name '*.c' -o -name 'Cargo.toml' \))
+TEST_C_SOURCES := $(wildcard tests/*.c)
 EXTERNAL_SOURCES := $(shell find packaging/external -type f ! -name '*.pyc')
 export RPTADV_CODEC_BACKEND_LIBDIR ?= $(CURDIR)/build/backends/lib
 export LD_LIBRARY_PATH := $(RPTADV_CODEC_BACKEND_LIBDIR)$(if $(LD_LIBRARY_PATH),:$(LD_LIBRARY_PATH))
@@ -60,11 +61,11 @@ lint:
 	$(CARGO) fmt --all -- --check
 	ruff format --check tests packaging
 	ruff check tests packaging
-	clang-format --dry-run --Werror include/rptadv_codec.h tests/abi_header_smoke.c rust/ffmpeg/src/glue.c packaging/external/dialogic/dialogic.c
+	clang-format --dry-run --Werror include/rptadv_codec.h $(TEST_C_SOURCES) rust/ffmpeg/src/glue.c packaging/external/dialogic/dialogic.c
 
 static-analysis:
 	$(CARGO) clippy --workspace --all-targets --locked -- -D warnings
-	cppcheck --enable=warning,style,performance,portability --error-exitcode=1 --force --std=c11 -Iinclude tests/abi_header_smoke.c rust/ffmpeg/src/glue.c packaging/external/dialogic/dialogic.c
+	cppcheck --enable=warning,style,performance,portability --error-exitcode=1 --force --std=c11 -Iinclude $(TEST_C_SOURCES) rust/ffmpeg/src/glue.c packaging/external/dialogic/dialogic.c
 
 docs:
 	mkdir -p build
