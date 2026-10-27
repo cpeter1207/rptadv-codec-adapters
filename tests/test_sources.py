@@ -8,6 +8,25 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class Sources(unittest.TestCase):
+    def test_coverage_runs_external_tests_against_instrumented_providers(self):
+        coverage = (
+            (ROOT / "Makefile")
+            .read_text()
+            .split("\ncoverage:\n", 1)[1]
+            .split("\npackage-check:", 1)[0]
+        )
+        for fragment in [
+            "llvm-cov show-env",
+            "--include-ffi",
+            "$(CARGO) build",
+            "RPTADV_CODEC_DIR",
+            "target",
+            "-m unittest discover",
+            "llvm-cov report",
+        ]:
+            self.assertIn(fragment, coverage)
+        self.assertIn('env::var("CFLAGS")', (ROOT / "rust/ffmpeg/build.rs").read_text())
+
     def test_sources_are_released_compatible_and_complete(self):
         """A missing pin or unaudited license must block provider builds."""
         source_path = ROOT / "dependencies" / "codecs.json"

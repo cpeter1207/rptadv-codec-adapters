@@ -97,7 +97,18 @@ install-check: all
 
 coverage:
 	mkdir -p build/coverage
-	$(CARGO) +nightly-2025-02-20 llvm-cov --workspace --all-targets --branch --json --output-path build/coverage/rust.json
+	+@set -e; export RUSTUP_TOOLCHAIN=nightly-2025-02-20; \
+		export CC=clang CXX=clang++ LLVM_COV=llvm-cov LLVM_PROFDATA=llvm-profdata; \
+		export CARGO_LLVM_COV_TARGET_DIR="$(CURDIR)/target/codec-coverage"; \
+		eval "$$($(CARGO) llvm-cov show-env --branch --include-ffi --export-prefix)"; \
+		$(CARGO) llvm-cov clean --workspace; \
+		$(CARGO) build --locked --workspace --lib; \
+		$(CARGO) test --locked --workspace --all-targets; \
+		RPTADV_CODEC_DIR="$$CARGO_TARGET_DIR/debug" \
+		RPTADV_CODEC_G711_LIBRARY="$$CARGO_TARGET_DIR/debug/librptadv_codec_g711.so" \
+		RPTADV_CODEC_PCM_LIBRARY="$$CARGO_TARGET_DIR/debug/librptadv_codec_pcm.so" \
+		$(PYTHON) -m unittest discover -s tests; \
+		$(CARGO) llvm-cov report --include-ffi --json --output-path build/coverage/rust.json
 	$(PYTHON) tests/check_coverage.py build/coverage/rust.json
 
 package-check: all
