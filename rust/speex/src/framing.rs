@@ -67,10 +67,16 @@ pub(super) fn frames(packet: &[u8]) -> Result<u32, Status> {
             }
             mode @ 0..=8 => {
                 reader.skip(NB[mode] - 5)?;
-                count = count.checked_add(1).ok_or(Status::Malformed)?;
+                // The provider caps packets at i32::MAX bytes; even five-bit
+                // null frames cannot overflow this u32 count.
+                count += 1;
             }
             _ => return Err(Status::Malformed),
         }
     }
     Ok(count)
 }
+
+#[cfg(test)]
+#[path = "framing_tests.rs"]
+mod tests;

@@ -45,6 +45,7 @@ impl Backend for Probe {
             1 => (0, 1),
             2 => (1, 0),
             3 => (1, usize::MAX),
+            13 => (2, 1),
             _ => (1, 1),
         }
     }
@@ -66,6 +67,7 @@ impl Backend for Probe {
         match self.0 {
             6 => Err(Status::Failed),
             7 => Ok(out.len() + 1),
+            12 => Ok(0),
             _ => {
                 out.fill(42);
                 Ok(pcm.len())
@@ -134,6 +136,33 @@ fn contract_rejects_invalid_backend_units_and_reports_allocation_failure() {
     let status = unsafe { open::<Probe>(&config(0), &mut pointer, true) };
     assert_eq!(status, 5);
     assert!(pointer.is_null());
+    let mut partial = config(13);
+    partial.packet_frames = 3;
+    assert_eq!(unsafe { open::<Probe>(&partial, &mut pointer, true) }, 3);
+}
+
+#[test]
+fn contract_runtime_table_and_partial_final_input_preserve_progress() {
+    let table = descriptor::<Probe>();
+    assert_eq!(table.struct_size as usize, size_of::<Descriptor>());
+    assert_eq!(table.profile_count.unwrap()(), 0);
+    for mode in [0, 12] {
+        let mut owner = context(mode, true);
+        let mut result: EncodeResult = unsafe { std::mem::zeroed() };
+        assert_eq!(
+            encode_block(&mut owner, &[0.25; 16], &mut [0; 64], true, &mut result),
+            Status::Complete
+        );
+        assert_eq!(result.consumed_frames, 8);
+        assert_eq!(result.encoded_bytes, if mode == 12 { 0 } else { 8 });
+        assert_eq!(result.packet_frames, if mode == 12 { 0 } else { 8 });
+        assert!(!owner.encoder.as_ref().unwrap().finished);
+        assert_eq!(
+            encode_block(&mut owner, &[0.25; 8], &mut [0; 64], true, &mut result),
+            Status::Complete
+        );
+        assert!(owner.encoder.as_ref().unwrap().finished);
+    }
 }
 
 #[test]
