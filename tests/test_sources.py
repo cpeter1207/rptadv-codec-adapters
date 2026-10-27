@@ -25,6 +25,9 @@ class Sources(unittest.TestCase):
             "llvm-cov report",
         ]:
             self.assertIn(fragment, coverage)
+        self.assertNotIn("LLVM_COV=llvm-cov", coverage)
+        self.assertNotIn("LLVM_PROFDATA=llvm-profdata", coverage)
+        self.assertIn('format!("CFLAGS_', (ROOT / "rust/ffmpeg/build.rs").read_text())
         self.assertIn('env::var("CFLAGS")', (ROOT / "rust/ffmpeg/build.rs").read_text())
 
     def test_sources_are_released_compatible_and_complete(self):

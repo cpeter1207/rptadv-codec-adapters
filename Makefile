@@ -98,7 +98,7 @@ install-check: all
 coverage:
 	mkdir -p build/coverage
 	+@set -e; export RUSTUP_TOOLCHAIN=nightly-2025-02-20; \
-		export CC=clang CXX=clang++ LLVM_COV=llvm-cov LLVM_PROFDATA=llvm-profdata; \
+		export CC=clang CXX=clang++; unset LLVM_COV LLVM_PROFDATA; \
 		export CARGO_LLVM_COV_TARGET_DIR="$(CURDIR)/target/codec-coverage"; \
 		export CARGO_TARGET_DIR="$$CARGO_LLVM_COV_TARGET_DIR"; \
 		eval "$$($(CARGO) llvm-cov show-env --branch --include-ffi --export-prefix)"; \

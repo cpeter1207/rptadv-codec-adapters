@@ -3,6 +3,12 @@ use std::{env, path::PathBuf, process::Command};
 fn main() {
     println!("cargo:rerun-if-changed=src/glue.c");
     println!("cargo:rerun-if-env-changed=CFLAGS");
+    // cargo-llvm-cov supplies flags for the exact target, not the build host.
+    let target_flags = format!("CFLAGS_{}", env::var("TARGET").unwrap().replace('-', "_"));
+    println!("cargo:rerun-if-env-changed={target_flags}");
+    let cflags = env::var(&target_flags)
+        .or_else(|_| env::var("CFLAGS"))
+        .unwrap_or_default();
     let directory = PathBuf::from(env::var_os("OUT_DIR").expect("Cargo output directory"));
     let flags = Command::new("pkg-config")
         .args(["--cflags", "libavcodec", "libavutil"])
@@ -26,7 +32,7 @@ fn main() {
                 "-o"
             ])
             .arg(&object)
-            .args(env::var("CFLAGS").unwrap_or_default().split_whitespace())
+            .args(cflags.split_whitespace())
             .args(
                 String::from_utf8(flags.stdout)
                     .expect("compiler flags")
