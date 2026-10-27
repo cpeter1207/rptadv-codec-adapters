@@ -7,13 +7,33 @@ import os
 import unittest
 from pathlib import Path
 
-from test_g711 import Config, Descriptor, Encoded, Packet
+from test_g711 import Config, Descriptor, Encoded, Packet, ProfileInfo
 
 DIRECTORY = Path(
     os.environ.get(
         "RPTADV_CODEC_DIR", Path(__file__).resolve().parents[1] / "target/debug"
     )
 )
+
+PROFILES = [
+    ("g711", 1, 160, 1, 0, 0),
+    ("g711", 2, 160, 1, 0, 0),
+    ("gsm", 3, 160, 160, 0, 0),
+    ("ffmpeg", 4, 240, 240, 6300, 60),
+    ("spandsp", 5, 160, 2, 0, 0),
+    ("dialogic", 6, 160, 2, 0, 0),
+    ("pcm", 7, 160, 1, 0, 0),
+    ("spandsp", 8, 180, 180, 0, 540),
+    ("bcg729", 9, 80, 80, 0, 40),
+    ("speex", 10, 160, 160, 0, 40),
+    ("ilbc", 11, 240, 240, 30, 0),
+    ("ilbc", 11, 160, 160, 20, 0),
+    ("spandsp", 12, 160, 2, 0, 0),
+    ("spandsp", 13, 320, 2, 0, 0),
+    ("pcm", 14, 320, 1, 0, 0),
+    ("speex", 15, 320, 320, 0, 143),
+    ("opus", 16, 960, 960, 0, 312),
+]
 
 
 class ProviderHarness(unittest.TestCase):
@@ -32,27 +52,49 @@ class ProviderHarness(unittest.TestCase):
 
 
 class NativeProfiles(ProviderHarness):
+    def test_profile_tables_and_invalid_configuration(self):
+        """Every advertised profile describes a real, resettable directional pair."""
+        found = set()
+        for backend, profile, frames, _, mode, delay in PROFILES:
+            with self.subTest(profile=profile, mode=mode):
+                _, api, handles = self.api(backend, profile, frames, mode)
+                entries = []
+                for index in range(api.profile_count()):
+                    info = ProfileInfo(struct_size=c.sizeof(ProfileInfo))
+                    self.assertEqual(api.profile_at(index, c.byref(info)), 0)
+                    self.assertEqual((info.channels, info.directions), (1, 3))
+                    self.assertIn(info.sample_rate_hz, (8000, 16000, 48000))
+                    self.assertGreater(info.mode_count, 0)
+                    self.assertTrue(info.modes)
+                    entries.append(info.id)
+                    found.add(info.id)
+                    if info.id == profile:
+                        self.assertEqual(info.lookahead_frames, delay)
+                        self.assertIn(
+                            mode, [info.modes[i].id for i in range(info.mode_count)]
+                        )
+                self.assertIn(profile, entries)
+                info = ProfileInfo(struct_size=c.sizeof(ProfileInfo))
+                self.assertEqual(api.profile_at(api.profile_count(), c.byref(info)), 4)
+                info.struct_size = 4
+                self.assertEqual(api.profile_at(0, c.byref(info)), 3)
+                self.assertEqual(api.profile_at(0, None), 3)
+                for handle in handles:
+                    self.assertEqual(api.reset(handle), 0)
+                for open_context in (api.open_encoder, api.open_decoder):
+                    for wrong_profile, wrong_mode in [(999, mode), (profile, 999)]:
+                        config = Config(
+                            c.sizeof(Config), wrong_profile, wrong_mode, frames, 65503
+                        )
+                        handle = c.c_void_p(123)
+                        self.assertEqual(
+                            open_context(c.byref(config), c.byref(handle)), 4
+                        )
+                        self.assertFalse(handle.value)
+        self.assertEqual(found, set(range(1, 17)))
+
     def test_finite_profiles_cover_real_source_and_drain_legal_tail_packets(self):
-        profiles = [
-            ("g711", 1, 160, 1, 0, 0),
-            ("g711", 2, 160, 1, 0, 0),
-            ("gsm", 3, 160, 160, 0, 0),
-            ("ffmpeg", 4, 240, 240, 6300, 60),
-            ("spandsp", 5, 160, 2, 0, 0),
-            ("dialogic", 6, 160, 2, 0, 0),
-            ("pcm", 7, 160, 1, 0, 0),
-            ("spandsp", 8, 180, 180, 0, 540),
-            ("bcg729", 9, 80, 80, 0, 40),
-            ("speex", 10, 160, 160, 0, 40),
-            ("ilbc", 11, 240, 240, 30, 0),
-            ("ilbc", 11, 160, 160, 20, 0),
-            ("spandsp", 12, 160, 2, 0, 0),
-            ("spandsp", 13, 320, 2, 0, 0),
-            ("pcm", 14, 320, 1, 0, 0),
-            ("speex", 15, 320, 320, 0, 143),
-            ("opus", 16, 960, 960, 0, 312),
-        ]
-        for backend, profile, frames, unit, mode, delay in profiles:
+        for backend, profile, frames, unit, mode, delay in PROFILES:
             for length in {1, max(1, unit - 1), unit, frames + 1}:
                 with self.subTest(profile=profile, mode=mode, length=length):
                     _, api, (encoder, decoder) = self.api(

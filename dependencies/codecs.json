@@ -45,7 +45,7 @@
       "gpl2_compatible_reviewed": true,
       "build_flags": ["shared system libopus", "mono 48000Hz", "20ms encoder packets", "DTX disabled"],
       "formats": ["opus"],
-      "fixture_sources": ["Opus released test vectors and opus_packet_get_nb_samples"]
+      "fixture_sources": ["tests/test_reference.py: separate released Opus contexts, encoded bytes and decoded PCM", "tests/test_native_profiles.py: opus_packet_get_nb_samples and independent 60ms packet"]
     },
     {
       "backend": "spandsp",
@@ -67,7 +67,7 @@
       "gpl2_compatible_reviewed": true,
       "build_flags": ["separately packaged dynamic 1.0.4 library", "never substitute current GPL3-only release", "VAD disabled"],
       "formats": ["g729"],
-      "fixture_sources": ["ITU G.729 Release 3 Annex A vectors, privately fetched for conformance; Asterisk 20.21 format_g729.c framing (no bundled G729 sample)"]
+      "fixture_sources": ["tests/test_reference.py: separate pinned GPL2 bcg729 encoder/decoder contexts", "tests/test_native_profiles.py: speech/SID framing; Asterisk 20.21 format_g729.c"]
     },
     {
       "backend": "ilbc",
@@ -78,7 +78,7 @@
       "gpl2_compatible_reviewed": true,
       "build_flags": ["separately packaged shared 2.0.2 library", "explicit 20/30ms contexts", "no Abseil dependency"],
       "formats": ["ilbc"],
-      "fixture_sources": ["Asterisk 20.21.0 codecs/codec_ilbc.c: attribute-free IAX uses 30ms/50bytes; released libilbc test vectors"]
+      "fixture_sources": ["Asterisk 20.21.0 codecs/codec_ilbc.c: attribute-free IAX uses 30ms/50bytes", "tests/test_reference.py: separate released libilbc contexts for explicit20/30ms provider modes; IAX20 interoperability pending"]
     },
     {
       "backend": "dialogic",

@@ -54,6 +54,31 @@ class Packet(c.Structure):
     ]
 
 
+class ModeInfo(c.Structure):
+    _fields_ = [
+        ("struct_size", c.c_uint32),
+        ("id", c.c_uint32),
+        ("bitrate_bps", c.c_uint32),
+        ("frame_samples", c.c_uint32),
+        ("frame_bytes", c.c_uint32),
+    ]
+
+
+class ProfileInfo(c.Structure):
+    _fields_ = [
+        ("struct_size", c.c_uint32),
+        ("id", c.c_uint32),
+        ("sample_rate_hz", c.c_uint32),
+        ("channels", c.c_uint32),
+        ("directions", c.c_uint32),
+        ("lookahead_frames", c.c_uint32),
+        ("maximum_frame_samples", c.c_uint32),
+        ("maximum_frame_bytes", c.c_uint32),
+        ("mode_count", c.c_size_t),
+        ("modes", c.POINTER(ModeInfo)),
+    ]
+
+
 Count = c.CFUNCTYPE(c.c_size_t)
 Profile = c.CFUNCTYPE(c.c_int32, c.c_size_t, c.c_void_p)
 Open = c.CFUNCTYPE(c.c_int32, c.POINTER(Config), c.POINTER(c.c_void_p))
@@ -186,6 +211,10 @@ class G711(unittest.TestCase):
         alaw_encoded = (c.c_uint8 * 2)(0xD5, 0x55)
         self.assertEqual(api.decode(alaw, alaw_encoded, 2, pcm, 4, c.byref(frames)), 0)
         self.assertEqual(list(pcm)[:2], [8 / 32768, -8 / 32768])
+        alaw_encoder = open_context(2)
+        status, output, _ = encode(alaw_encoder, [-1.0, 0.0, 1.0], flush=True)
+        self.assertEqual(status, 0)
+        self.assertEqual(output[:3], b"\x2a\xd5\xaa")
 
     def test_contract_rejects_short_config(self):
         """A caller with an old/short layout cannot create a context."""
