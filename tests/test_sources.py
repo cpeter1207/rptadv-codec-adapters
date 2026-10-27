@@ -12,7 +12,7 @@ class Sources(unittest.TestCase):
         makefile = (ROOT / "Makefile").read_text()
         self.assertIn("COVERAGE_EXCLUDE ?= a^", makefile)
         self.assertIn("coverage-foundations:", makefile)
-        self.assertIn('"$(COVERAGE_EXCLUDE)"', makefile)
+        self.assertIn('"$(COVERAGE_EXCLUDE)|released_adpcm[.]inc"', makefile)
 
     def test_coverage_runs_external_tests_against_instrumented_providers(self):
         coverage = (
@@ -35,6 +35,14 @@ class Sources(unittest.TestCase):
         self.assertNotIn("LLVM_PROFDATA=llvm-profdata", coverage)
         self.assertIn('format!("CFLAGS_', (ROOT / "rust/ffmpeg/build.rs").read_text())
         self.assertIn('env::var("CFLAGS")', (ROOT / "rust/ffmpeg/build.rs").read_text())
+        for required in [
+            'CFLAGS="$$CFLAGS_x86_64_unknown_linux_gnu"',
+            "--prefix build/coverage/backends",
+            "RPTADV_CODEC_NATIVE_TEST_DIR",
+            "-object=$(CURDIR)/build/coverage/native/ffmpeg-fault-smoke",
+            "-object=$(CURDIR)/build/coverage/backends/lib/librptadv_dialogic.so.1",
+        ]:
+            self.assertIn(required, coverage)
 
     def test_sources_are_released_compatible_and_complete(self):
         """A missing pin or unaudited license must block provider builds."""

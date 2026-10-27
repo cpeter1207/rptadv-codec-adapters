@@ -5,6 +5,7 @@ import shlex
 import subprocess
 import tempfile
 import unittest
+from contextlib import nullcontext
 from pathlib import Path
 
 from test_native_profiles import DIRECTORY
@@ -45,7 +46,13 @@ class NativeFailures(unittest.TestCase):
             "avcodec_send_packet",
             "avcodec_receive_frame",
         ]
-        with tempfile.TemporaryDirectory(dir=ROOT / "build") as directory:
+        retained = os.environ.get("RPTADV_CODEC_NATIVE_TEST_DIR")
+        workspace = (
+            nullcontext(retained)
+            if retained
+            else tempfile.TemporaryDirectory(dir=ROOT / "build")
+        )
+        with workspace as directory:
             executable = Path(directory) / "ffmpeg-fault-smoke"
             subprocess.run(
                 [
