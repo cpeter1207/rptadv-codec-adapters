@@ -2,7 +2,7 @@ Source: rptadv-codec-adapters
 Section: libs
 Priority: optional
 Maintainer: Chris Peterson <cpeter1207@users.noreply.github.com>
-Build-Depends: debhelper-compat (= 13), cargo, rustc, python3
+Build-Depends: debhelper-compat (= 13), cargo, rustc, python3, libgsm1-dev, libopus-dev, libspeex-dev, libspandsp-dev
 Standards-Version: 4.7.0
 Rules-Requires-Root: no
 
@@ -15,6 +15,36 @@ Description: protocol-neutral G.711 codec provider
 Package: librptadv-codec-dev
 Section: libdevel
 Architecture: any
-Depends: librptadv-codec-g7111 (= ${binary:Version}), ${misc:Depends}
+Depends: librptadv-codec-g7111 (= ${binary:Version}), librptadv-codec-pcm1 (= ${binary:Version}), librptadv-codec-gsm1 (= ${binary:Version}), librptadv-codec-opus1 (= ${binary:Version}), librptadv-codec-speex1 (= ${binary:Version}), librptadv-codec-spandsp1 (= ${binary:Version}), ${misc:Depends}
 Description: protocol-neutral codec provider development contract
  Public C header and development links for independently loaded providers.
+
+Package: librptadv-codec-pcm1
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: protocol-neutral signed PCM codec provider
+ Versioned big-endian 8 kHz and little-endian 16 kHz serialization provider.
+
+Package: librptadv-codec-gsm1
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: protocol-neutral GSM FR codec provider
+ Independent shared provider using the released dynamic libgsm library.
+
+Package: librptadv-codec-opus1
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: protocol-neutral mono Opus codec provider
+ Independent shared provider using the released dynamic libopus library.
+
+Package: librptadv-codec-speex1
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: protocol-neutral narrowband and wideband Speex provider
+ Independent shared provider using the released dynamic libspeex library.
+
+Package: librptadv-codec-spandsp1
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: protocol-neutral G726, G722 and LPC10 providers
+ Independent shared provider using the released dynamic SpanDSP library.

@@ -9,5 +9,6 @@ version.workspace = true
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
+rptadv-codec-provider = { path = "../provider" }
 rptadv-codec-contract = { path = "../contract" }
 audio-codec-algorithms = { version = "=0.7.0", default-features = false }

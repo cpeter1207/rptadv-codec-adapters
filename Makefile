@@ -7,21 +7,23 @@ MULTIARCH := $(shell dpkg-architecture -qDEB_HOST_MULTIARCH)
 LIBDIR ?= $(PREFIX)/lib/$(MULTIARCH)
 DESTDIR ?=
 VERSION := 0.1.0-alpha1
-LIBRARY := librptadv_codec_g711
-SONAME := $(LIBRARY).so.1
+BACKENDS := g711 pcm gsm opus speex spandsp
+LIBRARIES := $(addprefix librptadv_codec_,$(BACKENDS))
+SONAMES := $(addsuffix .so.1,$(LIBRARIES))
+LIBVERSION := 1.0.0
 RUST_SOURCES := $(shell find rust -name '*.rs' -type f)
 
 .PHONY: all sources-check test abi-check lint static-analysis docs quality install install-check coverage package-check debian-package-check platform-verify clean
 
-all: build/$(SONAME)
+all: $(addprefix build/,$(SONAMES))
 
-build/$(SONAME): Cargo.toml Cargo.lock $(RUST_SOURCES)
-	RUSTFLAGS="$(RUSTFLAGS) -C link-arg=-Wl,-soname,$(SONAME)" $(CARGO) build --workspace --release --locked
+build/librptadv_codec_%.so.1: Cargo.toml Cargo.lock $(RUST_SOURCES)
+	$(CARGO) rustc -p rptadv-codec-$* --release --locked -- -C link-arg=-Wl,-soname,librptadv_codec_$*.so.1
 	mkdir -p build
-	cp target/release/$(LIBRARY).so build/$(LIBRARY).so.1.$(VERSION)
-	ln -sfn $(LIBRARY).so.1.$(VERSION) $@
-	ln -sfn $(SONAME) build/$(LIBRARY).so
-	readelf -d $@ | grep -F '$(SONAME)'
+	cp target/release/librptadv_codec_$*.so build/librptadv_codec_$*.so.$(LIBVERSION)
+	ln -sfn librptadv_codec_$*.so.$(LIBVERSION) $@
+	ln -sfn librptadv_codec_$*.so.1 build/librptadv_codec_$*.so
+	readelf -d $@ | grep -F 'librptadv_codec_$*.so.1'
 	! readelf -d $@ | grep -E 'libasterisk|libportaudio|libasound|res_usbradio'
 
 sources-check:
@@ -29,7 +31,7 @@ sources-check:
 
 test: all sources-check
 	$(CARGO) test --workspace --locked
-	RPTADV_CODEC_G711_LIBRARY="$(CURDIR)/build/$(SONAME)" $(PYTHON) -m unittest discover -s tests
+	RPTADV_CODEC_DIR="$(CURDIR)/build" RPTADV_CODEC_PCM_LIBRARY="$(CURDIR)/build/librptadv_codec_pcm.so.1" RPTADV_CODEC_G711_LIBRARY="$(CURDIR)/build/librptadv_codec_g711.so.1" $(PYTHON) -m unittest discover -s tests
 	$(MAKE) abi-check
 
 abi-check: all
@@ -56,9 +58,11 @@ quality: lint static-analysis docs
 
 install: all
 	install -d $(DESTDIR)$(LIBDIR)/pkgconfig $(DESTDIR)$(PREFIX)/include/rptadv-codec
-	install -m 0755 build/$(LIBRARY).so.1.$(VERSION) $(DESTDIR)$(LIBDIR)/
-	ln -sfn $(LIBRARY).so.1.$(VERSION) $(DESTDIR)$(LIBDIR)/$(SONAME)
-	ln -sfn $(SONAME) $(DESTDIR)$(LIBDIR)/$(LIBRARY).so
+	set -eu; for library in $(LIBRARIES); do \
+	  install -m 0755 build/$$library.so.$(LIBVERSION) $(DESTDIR)$(LIBDIR)/; \
+	  ln -sfn $$library.so.$(LIBVERSION) $(DESTDIR)$(LIBDIR)/$$library.so.1; \
+	  ln -sfn $$library.so.1 $(DESTDIR)$(LIBDIR)/$$library.so; \
+	done
 	install -m 0644 include/rptadv_codec.h $(DESTDIR)$(PREFIX)/include/rptadv-codec/
 	sed -e 's|@PREFIX@|$(PREFIX)|' -e 's|@LIBDIR@|$(LIBDIR)|' rptadv_codec.pc.in > $(DESTDIR)$(LIBDIR)/pkgconfig/rptadv_codec.pc
 
@@ -66,7 +70,7 @@ install-check: all
 	set -eu; stage=$$(mktemp -d "$(CURDIR)/build/install.XXXXXX"); \
 	trap 'rm -rf "$$stage"' EXIT; \
 	$(MAKE) DESTDIR="$$stage" install; \
-	test -f "$$stage$(LIBDIR)/$(SONAME)"; \
+	for library in $(LIBRARIES); do test -f "$$stage$(LIBDIR)/$$library.so.1"; done; \
 	test -f "$$stage$(PREFIX)/include/rptadv-codec/rptadv_codec.h"; \
 	test -z "$$(find "$$stage" -name '*.a')"
 

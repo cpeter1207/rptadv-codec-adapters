@@ -32,3 +32,9 @@ implementation: payload 0x42 produces [288,464], not Asterisk's [288,480].
 
 All downloaded external archives remain in ignored .work/sources for inspection;
 they are not vendored into controller, IAX or provider source trees.
+
+Provider evidence: native ARM64 Rust 1.85.1 tests exercise signed PCM byte order,
+G.711 endpoint vectors, the pinned Asterisk GSM/Speex/G.722/G.726/LPC10 packets,
+and an independently produced 60 ms libopus packet. This is initial framing and
+ABI evidence, not a claim that every direction/mode has complete conformance or
+coverage. Source fixtures retain Digium's GPL-2.0 attribution in their manifest.

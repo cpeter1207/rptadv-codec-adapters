@@ -1,3 +1,3 @@
-usr/lib/*/librptadv_codec_g711.so
+usr/lib/*/librptadv_codec_*.so
 usr/include/rptadv-codec/rptadv_codec.h
 usr/lib/*/pkgconfig/rptadv_codec.pc

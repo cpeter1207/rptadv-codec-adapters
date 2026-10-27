@@ -21,3 +21,9 @@ License: 0BSD
  LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR
  OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
  PERFORMANCE OF THIS SOFTWARE.
+
+Files: tests/fixtures/asl_frames.json
+Copyright: 2008 Digium, Inc.
+License: GPL-2.0
+ On Debian systems the complete license is in
+ /usr/share/common-licenses/GPL-2.
