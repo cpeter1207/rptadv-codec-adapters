@@ -129,7 +129,6 @@ impl Backend for Opus {
         usize::try_from(encoded).map_err(|_| Status::Failed)
     }
     fn decode(&mut self, packet: &[u8], out: &mut [f32]) -> Result<usize, Status> {
-        // Never call with a null/empty packet: PLC belongs to the shared PCM ring.
         let frames = unsafe {
             opus_decode_float(
                 self.state.as_ptr(),
@@ -141,6 +140,26 @@ impl Backend for Opus {
             )
         };
         usize::try_from(frames).map_err(|_| Status::Malformed)
+    }
+    fn conceal(&mut self, out: &mut [f32]) -> Result<(), Status> {
+        // Opus PLC uses a null packet and a duration in 2.5 ms units, <=120 ms.
+        if out.len() % 120 != 0 || out.len() > 5760 {
+            return Err(Status::Unsupported);
+        }
+        let frames = unsafe {
+            opus_decode_float(
+                self.state.as_ptr(),
+                std::ptr::null(),
+                0,
+                out.as_mut_ptr(),
+                out.len() as c_int,
+                0,
+            )
+        };
+        if frames != out.len() as c_int {
+            return Err(Status::Failed);
+        }
+        Ok(())
     }
     fn reset(&mut self) -> Result<(), Status> {
         let result = unsafe {

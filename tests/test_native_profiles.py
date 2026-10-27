@@ -2,6 +2,7 @@
 
 import ctypes as c
 import json
+import math
 import os
 import unittest
 from pathlib import Path
@@ -31,6 +32,66 @@ class ProviderHarness(unittest.TestCase):
 
 
 class NativeProfiles(ProviderHarness):
+    def test_native_plc_precedes_shared_ring_fallback(self):
+        for backend, profile, frames, mode in [
+            ("opus", 16, 960, 0),
+            ("speex", 10, 160, 0),
+            ("speex", 15, 320, 0),
+            ("ilbc", 11, 160, 20),
+            ("ilbc", 11, 240, 30),
+            ("bcg729", 9, 80, 0),
+            ("g711", 1, 160, 0),
+        ]:
+            with self.subTest(backend=backend, profile=profile, mode=mode):
+                _, api, (encoder, decoder) = self.api(backend, profile, frames, mode)
+                self.assertGreaterEqual(api.struct_size, c.sizeof(Descriptor))
+                pcm = (c.c_float * frames)(
+                    *(0.2 * math.sin(i * 0.13) for i in range(frames))
+                )
+                packet = (c.c_uint8 * 4000)()
+                result = Encoded(struct_size=c.sizeof(Encoded))
+                count = c.c_size_t()
+                output = (c.c_float * frames)()
+                for _ in range(4):
+                    self.assertEqual(
+                        api.encode(
+                            encoder,
+                            pcm,
+                            frames,
+                            packet,
+                            len(packet),
+                            0,
+                            c.byref(result),
+                        ),
+                        0,
+                    )
+                    self.assertEqual(
+                        api.decode(
+                            decoder,
+                            packet,
+                            result.encoded_bytes,
+                            output,
+                            frames,
+                            c.byref(count),
+                        ),
+                        0,
+                    )
+                output[:] = [0.75] * frames
+                self.assertEqual(
+                    api.conceal(decoder, frames, output, frames - 1, c.byref(count)), 2
+                )
+                self.assertEqual(count.value, frames)
+                self.assertEqual(list(output), [0.75] * frames)
+                status = api.conceal(decoder, frames, output, frames, c.byref(count))
+                if backend == "g711":
+                    self.assertEqual((status, count.value), (4, 0))
+                    self.assertEqual(list(output), [0.75] * frames)
+                else:
+                    self.assertEqual((status, count.value), (0, frames))
+                    self.assertTrue(all(-1.0 <= x <= 1.0 for x in output))
+                    self.assertNotEqual(list(output), [0.75] * frames)
+                    self.assertGreater(max(abs(x) for x in output), 0.00001)
+
     def test_profile_released_peer_fixtures(self):
         fixtures = json.loads(
             (Path(__file__).parent / "fixtures/asl_frames.json").read_text()
@@ -141,7 +202,7 @@ class NativeProfiles(ProviderHarness):
                 )
                 self.assertTrue(library)
 
-    def test_ilbc_rejects_hidden_plc_without_consuming_aggregate(self):
+    def test_ilbc_native_concealment_remains_enabled(self):
         for mode, frames, size, index, shift, mask, invalid in [
             (20, 160, 38, 2, 2, 3, [0]),
             (30, 240, 50, 5, 5, 7, [0, 6, 7]),
@@ -171,8 +232,9 @@ class NativeProfiles(ProviderHarness):
                         info = Packet(struct_size=c.sizeof(Packet))
                         self.assertEqual(
                             api.inspect(decoder, encoded, len(payload), c.byref(info)),
-                            3,
+                            0,
                         )
+                        self.assertEqual(info.frames, len(payload) // size * frames)
                         output = (c.c_float * (frames * 2))(*([0.75] * (frames * 2)))
                         count = c.c_size_t(999)
                         self.assertEqual(
@@ -184,22 +246,12 @@ class NativeProfiles(ProviderHarness):
                                 len(output),
                                 c.byref(count),
                             ),
-                            3,
+                            0,
                         )
-                        self.assertEqual(count.value, 0)
-                        self.assertEqual(list(output), [0.75] * (frames * 2))
-                # Rejected packets must not advance the first valid unit either.
-                _, _, (_, fresh) = self.api("ilbc", 11, frames, mode)
-                output = (c.c_float * frames)()
-                expected = (c.c_float * frames)()
-                count = c.c_size_t()
-                self.assertEqual(
-                    api.decode(decoder, packet, size, output, frames, c.byref(count)), 0
-                )
-                self.assertEqual(
-                    api.decode(fresh, packet, size, expected, frames, c.byref(count)), 0
-                )
-                self.assertEqual(list(output), list(expected))
+                        self.assertEqual(count.value, len(payload) // size * frames)
+                        self.assertTrue(
+                            all(-1.0 <= x <= 1.0 for x in output[: count.value])
+                        )
 
     def test_profile_gsm_peer_fixture(self):
         # Asterisk 20.21.0 codecs/ex_gsm.h (GPL-2.0, Digium 2008), not WAV49.

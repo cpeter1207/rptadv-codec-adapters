@@ -29,6 +29,11 @@ pub trait Backend: Sized {
     fn encode(&mut self, pcm: &[f32], out: &mut [u8]) -> Result<usize, Status>;
     /// Decode a whole inspected packet; caller capacity has been checked.
     fn decode(&mut self, packet: &[u8], out: &mut [f32]) -> Result<usize, Status>;
+    /// Use released decoder PLC, never a new concealment algorithm. Unsupported
+    /// spans must leave history/output unchanged so the ring can supply fallback.
+    fn conceal(&mut self, _out: &mut [f32]) -> Result<(), Status> {
+        Err(Status::Unsupported)
+    }
     /// Restore initial backend history without changing the selected mode.
     fn reset(&mut self) -> Result<(), Status>;
 }
@@ -60,6 +65,7 @@ pub const fn descriptor<B: Backend>() -> Descriptor {
         decode: Some(decode::<B>),
         reset: Some(reset::<B>),
         destroy: Some(destroy::<B>),
+        conceal: Some(conceal::<B>),
     }
 }
 
@@ -314,6 +320,44 @@ unsafe extern "C" fn decode<B: Backend>(
     {
         Ok(n) if n == required => Status::Complete as i32,
         _ => Status::Failed as i32,
+    }
+}
+
+unsafe extern "C" fn conceal<B: Backend>(
+    context: *mut c_void,
+    requested: u32,
+    out: *mut f32,
+    capacity: usize,
+    frames: *mut usize,
+) -> i32 {
+    if !valid(context.cast::<Context<B>>(), 1) || !valid(out, capacity) || !valid(frames, 1) {
+        return Status::Malformed as i32;
+    }
+    unsafe {
+        frames.write(0);
+    }
+    let context = unsafe { &mut *context.cast::<Context<B>>() };
+    if context.encoder.is_some() {
+        return Status::Unsupported as i32;
+    }
+    let requested = requested as usize;
+    if capacity < requested {
+        unsafe {
+            frames.write(requested);
+        }
+        return Status::OutputFull as i32;
+    }
+    if requested == 0 {
+        return Status::Complete as i32;
+    }
+    match context.backend.conceal(unsafe { output(out, requested) }) {
+        Ok(()) => {
+            unsafe {
+                frames.write(requested);
+            }
+            Status::Complete as i32
+        }
+        Err(status) => status as i32,
     }
 }
 

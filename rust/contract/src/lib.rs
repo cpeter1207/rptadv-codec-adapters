@@ -165,4 +165,8 @@ pub struct Descriptor {
     pub reset: Option<unsafe extern "C" fn(*mut c_void) -> i32>,
     /// Destroy an exclusively owned context; null is harmless.
     pub destroy: Option<unsafe extern "C" fn(*mut c_void)>,
+    /// Generate native backend PLC for a supported source-frame span. Unsupported
+    /// returns zero frames without history/output mutation; OutputFull reports
+    /// required capacity before any decoder operation.
+    pub conceal: Option<unsafe extern "C" fn(*mut c_void, u32, *mut f32, usize, *mut usize) -> i32>,
 }

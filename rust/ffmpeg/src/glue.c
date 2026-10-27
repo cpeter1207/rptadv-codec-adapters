@@ -79,8 +79,8 @@ int rptadv_g723_encode(void *opaque, const int16_t *pcm, uint8_t *out) {
   return count == 24 ? count : -1;
 }
 
-/** Decode one already-inspected frame; never request codec packet-loss
- * concealment. */
+/** Decode one already-inspected frame, preserving native decoder concealment.
+ */
 int rptadv_g723_decode(void *opaque, const uint8_t *packet, int bytes,
                        int16_t *out) {
   struct codec_context *context = opaque;

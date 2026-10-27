@@ -205,6 +205,30 @@ impl Backend for Speex {
         }
         Ok(())
     }
+    fn conceal(&mut self, out: &mut [f32]) -> Result<(), Status> {
+        let unit = self.unit().0;
+        if out.len() % unit != 0 || out.len() > unit * 6 {
+            return Err(Status::Unsupported);
+        }
+        for frame in out.chunks_exact_mut(unit) {
+            let mut linear = [0i16; 320];
+            // The released Speex API requests native PLC with a null bitstream.
+            if unsafe {
+                speex_decode_int(
+                    self.state.as_ptr(),
+                    std::ptr::null_mut(),
+                    linear.as_mut_ptr(),
+                )
+            } != 0
+            {
+                return Err(Status::Failed);
+            }
+            for (target, sample) in frame.iter_mut().zip(linear) {
+                *target = f32::from(sample) / 32768.0;
+            }
+        }
+        Ok(())
+    }
 }
 
 static DESCRIPTOR: Descriptor = rptadv_codec_provider::descriptor::<Speex>();

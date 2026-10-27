@@ -26,6 +26,7 @@ unsafe extern "C" {
         out: *mut i16,
         speech: *mut i16,
     ) -> i16;
+    fn WebRtcIlbcfix_DecodePlc(state: *mut c_void, out: *mut i16, lost_frames: i16) -> i16;
 }
 static MODES: [Mode; 2] = [
     Mode {
@@ -129,19 +130,7 @@ impl Backend for Ilbc {
         if packet.len() % bytes != 0 {
             return Err(Status::Malformed);
         }
-        // libilbc 2.0.2 DecodeImpl silently conceals invalid startIdx/final-bit
-        // values. Preflight every unit before any decoder history is changed;
-        // concealment belongs exclusively to the caller's shared PCM ring.
-        for unit in packet.chunks_exact(bytes) {
-            let valid_start = if self.mode == 20 {
-                ((unit[2] >> 2) & 3) != 0
-            } else {
-                (1..=5).contains(&((unit[5] >> 5) & 7))
-            };
-            if !valid_start || unit[bytes - 1] & 1 != 0 {
-                return Err(Status::Malformed);
-            }
-        }
+        // Preserve libilbc's native concealment of damaged complete units.
         u32::try_from(packet.len() / bytes * frames).map_err(|_| Status::Malformed)
     }
     fn encode(&mut self, pcm: &[f32], out: &mut [u8]) -> Result<usize, Status> {
@@ -198,6 +187,27 @@ impl Backend for Ilbc {
     }
     fn reset(&mut self) -> Result<(), Status> {
         self.initialize()
+    }
+    fn conceal(&mut self, out: &mut [f32]) -> Result<(), Status> {
+        let unit = self.unit().0;
+        if out.len() % unit != 0 || out.len() > 960 {
+            return Err(Status::Unsupported);
+        }
+        let mut linear = [0i16; 960];
+        let count = unsafe {
+            WebRtcIlbcfix_DecodePlc(
+                self.state.as_ptr(),
+                linear.as_mut_ptr(),
+                (out.len() / unit) as i16,
+            )
+        };
+        if count != out.len() as i16 {
+            return Err(Status::Failed);
+        }
+        for (target, sample) in out.iter_mut().zip(linear) {
+            *target = f32::from(sample) / 32768.0;
+        }
+        Ok(())
     }
 }
 static DESCRIPTOR: Descriptor = rptadv_codec_provider::descriptor::<Ilbc>();

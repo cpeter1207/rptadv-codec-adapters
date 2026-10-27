@@ -6,8 +6,9 @@
  * valid, aligned, nonoverlapping and live through the synchronous call. A
  * record pointer always references at least its readable uint32_t size prefix;
  * complete records are required. A null buffer is valid only with a zero
- * element count. Libraries do not resample, conceal loss, negotiate protocols
- * or access sockets.
+ * element count. Libraries preserve their backend's native concealment and
+ * expose it for lost spans; unsupported spans use the caller's fallback PLC.
+ * Libraries do not resample, negotiate protocols or access sockets.
  */
 #ifndef RPTADV_CODEC_H
 #define RPTADV_CODEC_H
@@ -129,6 +130,12 @@ typedef struct rptadv_codec_descriptor_v1_table {
                     size_t *); /**< Complete packet decode. */
   int32_t (*reset)(void *);    /**< Clear codec history and source position. */
   void (*destroy)(void *);     /**< Exclusive cleanup; null is harmless. */
+  int32_t (*conceal)(
+      void *, uint32_t, float *, size_t,
+      size_t *); /**< Native PLC for requested source frames.
+                  * Unsupported returns zero frames, without
+                  * changing history or output. Output-full
+                  * returns required capacity without mutation. */
 } rptadv_codec_descriptor_v1_table;
 
 /** Entry point: provider DSO and contexts must outlive all borrowed table use.

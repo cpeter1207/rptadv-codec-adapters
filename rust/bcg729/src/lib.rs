@@ -136,6 +136,30 @@ impl Backend for G729 {
         *self = Self::new(self.encoder)?;
         Ok(())
     }
+    fn conceal(&mut self, out: &mut [f32]) -> Result<(), Status> {
+        if out.len() % 80 != 0 || out.len() > 960 {
+            return Err(Status::Unsupported);
+        }
+        for frame in out.chunks_exact_mut(80) {
+            let mut linear = [0i16; 80];
+            // frameErasureFlag=1 makes the released decoder conceal one 10 ms unit.
+            unsafe {
+                bcg729Decoder(
+                    self.state.as_ptr(),
+                    std::ptr::null_mut(),
+                    0,
+                    1,
+                    0,
+                    0,
+                    linear.as_mut_ptr(),
+                );
+            }
+            for (target, sample) in frame.iter_mut().zip(linear) {
+                *target = f32::from(sample) / 32768.0;
+            }
+        }
+        Ok(())
+    }
 }
 static DESCRIPTOR: Descriptor = rptadv_codec_provider::descriptor::<G729>();
 /// Return the immutable G.729A provider table.

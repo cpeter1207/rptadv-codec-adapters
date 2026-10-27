@@ -79,6 +79,9 @@ Decode = c.CFUNCTYPE(
 )
 Reset = c.CFUNCTYPE(c.c_int32, c.c_void_p)
 Destroy = c.CFUNCTYPE(None, c.c_void_p)
+Conceal = c.CFUNCTYPE(
+    c.c_int32, c.c_void_p, c.c_uint32, c.c_void_p, c.c_size_t, c.POINTER(c.c_size_t)
+)
 
 
 class Descriptor(c.Structure):
@@ -95,6 +98,7 @@ class Descriptor(c.Structure):
         ("decode", Decode),
         ("reset", Reset),
         ("destroy", Destroy),
+        ("conceal", Conceal),
     ]
 
 

@@ -1,5 +1,6 @@
 //! G.726 packing variants, G.722 and LPC10 through released dynamic SpanDSP.
-//! PCM is converted only at the backend's S16 boundary. No resampling or PLC.
+//! PCM is converted only at the backend's S16 boundary. Native decoder behavior
+//! is preserved; this adapter adds no resampling or custom PLC.
 #![deny(unsafe_op_in_unsafe_fn)]
 use rptadv_codec_contract::{Config, Descriptor, Mode, Profile, Status};
 use rptadv_codec_provider::Backend;
