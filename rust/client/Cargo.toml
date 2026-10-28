@@ -1,0 +1,13 @@
+[package]
+name = "rptadv-codec-client"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+version.workspace = true
+
+[dependencies]
+libloading = "0.8"
+
+[build-dependencies]
+bindgen = "0.72.1"
+

@@ -49,7 +49,7 @@ sources-check:
 	$(PYTHON) -m unittest discover -s tests -p test_sources.py
 
 test: all sources-check
-	$(CARGO) test --workspace --locked
+	RPTADV_CODEC_DIR="$(CURDIR)/build" $(CARGO) test --workspace --locked
 	RPTADV_CODEC_DIR="$(CURDIR)/build" RPTADV_CODEC_PCM_LIBRARY="$(CURDIR)/build/librptadv_codec_pcm.so.1" RPTADV_CODEC_G711_LIBRARY="$(CURDIR)/build/librptadv_codec_g711.so.1" $(PYTHON) -m unittest discover -s tests
 	$(MAKE) abi-check
 
@@ -111,7 +111,7 @@ coverage:
 		export LD_LIBRARY_PATH="$(CURDIR)/build/coverage/backends/lib:$$LD_LIBRARY_PATH"; \
 		export RPTADV_CODEC_NATIVE_TEST_DIR="$(CURDIR)/build/coverage/native"; \
 		$(CARGO) build --locked --workspace --lib; \
-		$(CARGO) test --locked --workspace --all-targets; \
+		RPTADV_CODEC_DIR="$$CARGO_TARGET_DIR/debug" $(CARGO) test --locked --workspace --all-targets; \
 		RPTADV_CODEC_DIR="$$CARGO_TARGET_DIR/debug" \
 		RPTADV_CODEC_G711_LIBRARY="$$CARGO_TARGET_DIR/debug/librptadv_codec_g711.so" \
 		RPTADV_CODEC_PCM_LIBRARY="$$CARGO_TARGET_DIR/debug/librptadv_codec_pcm.so" \
