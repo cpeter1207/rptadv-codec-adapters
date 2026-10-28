@@ -14,7 +14,7 @@ LIBVERSION := 1.0.0
 # The complete gate excludes nothing; focused targets select source parts only.
 COVERAGE_EXCLUDE ?= a^
 RUST_SOURCES := $(shell find rust -type f \( -name '*.rs' -o -name '*.c' -o -name 'Cargo.toml' \))
-TEST_C_SOURCES := $(wildcard tests/*.c)
+TEST_C_SOURCES := $(wildcard tests/*.c rust/client/tests/*.c)
 EXTERNAL_SOURCES := $(shell find packaging/external -type f ! -name '*.pyc')
 export RPTADV_CODEC_BACKEND_LIBDIR ?= $(CURDIR)/build/backends/lib
 export LD_LIBRARY_PATH := $(RPTADV_CODEC_BACKEND_LIBDIR)$(if $(LD_LIBRARY_PATH),:$(LD_LIBRARY_PATH))
