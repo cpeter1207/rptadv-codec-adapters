@@ -98,6 +98,7 @@ install-check: all
 	test -f "$$stage$(PREFIX)/include/rptadv-codec/rptadv_codec.h"; \
 	test -z "$$(find "$$stage" -name '*.a')"
 
+# Instrumented providers keep the versioned paths used by the installed client.
 coverage:
 	mkdir -p build/coverage/native
 	+@set -e; export RUSTUP_TOOLCHAIN=nightly-2025-02-20; \
@@ -111,6 +112,9 @@ coverage:
 		export LD_LIBRARY_PATH="$(CURDIR)/build/coverage/backends/lib:$$LD_LIBRARY_PATH"; \
 		export RPTADV_CODEC_NATIVE_TEST_DIR="$(CURDIR)/build/coverage/native"; \
 		$(CARGO) build --locked --workspace --lib; \
+		for library in $(LIBRARIES); do \
+			ln -sfn "$$library.so" "$$CARGO_TARGET_DIR/debug/$$library.so.1"; \
+		done; \
 		RPTADV_CODEC_DIR="$$CARGO_TARGET_DIR/debug" $(CARGO) test --locked --workspace --all-targets; \
 		RPTADV_CODEC_DIR="$$CARGO_TARGET_DIR/debug" \
 		RPTADV_CODEC_G711_LIBRARY="$$CARGO_TARGET_DIR/debug/librptadv_codec_g711.so" \

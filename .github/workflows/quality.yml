@@ -4,7 +4,7 @@ permissions:
   contents: read
 jobs:
   quality:
-    uses: cpeter1207/rptadv-shared-library-workflows/.github/workflows/quality.yml@ci/codec-provider-image
+    uses: cpeter1207/rptadv-shared-library-workflows/.github/workflows/quality.yml@main
     with:
       code_ref: ${{ github.sha }}
       full: ${{ github.event_name != 'push' }}
