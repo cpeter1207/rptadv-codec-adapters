@@ -1,0 +1,29 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: rptadv-codec-adapters
+Source: https://github.com/cpeter1207/rptadv-codec-adapters
+
+Files: *
+Copyright: 2026 Chris Peterson
+License: GPL-2.0-only
+ On Debian systems the complete license is in
+ /usr/share/common-licenses/GPL-2.
+
+Files: audio-codec-algorithms (Cargo dependency)
+Copyright: 2024-2025 The Contributors of Audio Codec Algorithms
+License: 0BSD
+ Permission to use, copy, modify, and/or distribute this software for any
+ purpose with or without fee is hereby granted.
+ .
+ THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH
+ REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
+ AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT,
+ INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
+ LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR
+ OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
+ PERFORMANCE OF THIS SOFTWARE.
+
+Files: tests/fixtures/asl_frames.json
+Copyright: 2008 Digium, Inc.
+License: GPL-2.0
+ On Debian systems the complete license is in
+ /usr/share/common-licenses/GPL-2.

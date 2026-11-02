@@ -1,0 +1,12 @@
+PROJECT_NAME = "RPT Advanced codec adapters"
+OUTPUT_DIRECTORY = build/developer-docs
+INPUT = include rust/ffmpeg/src/glue.c packaging/external/dialogic/dialogic.c
+FILE_PATTERNS = *.h *.c
+RECURSIVE = YES
+EXTRACT_ALL = YES
+QUIET = YES
+WARN_IF_UNDOCUMENTED = YES
+WARN_AS_ERROR = YES
+WARN_LOGFILE = build/doxygen-warnings.log
+GENERATE_HTML = YES
+GENERATE_LATEX = NO

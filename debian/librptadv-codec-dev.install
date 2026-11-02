@@ -1,0 +1,6 @@
+usr/lib/*/librptadv_codec_*.so
+usr/lib/*/librptadv_bcg729_gpl2.so
+usr/lib/*/librptadv_ilbc2.so
+usr/lib/*/librptadv_dialogic.so
+usr/include/rptadv-codec/rptadv_codec.h
+usr/lib/*/pkgconfig/rptadv_codec.pc

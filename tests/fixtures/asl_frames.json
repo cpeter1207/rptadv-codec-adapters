@@ -1,0 +1,58 @@
+[
+  {
+    "backend": "gsm",
+    "profile": 3,
+    "frames": 160,
+    "source": "Asterisk 20.21.0 codecs/ex_gsm.h ex_gsm",
+    "copyright": "2008 Digium, Inc., GPL-2.0",
+    "encoded_hex": "daa6ac2da3500049249249245040492492372452004924924724508046e36db8dc"
+  },
+  {
+    "backend": "speex",
+    "profile": 10,
+    "frames": 160,
+    "source": "Asterisk 20.21.0 codecs/ex_speex.h ex_speex",
+    "copyright": "2008 Digium, Inc., GPL-2.0",
+    "encoded_hex": "2e8e0f9a2000017fffffffffff9100bfffffffffffdc805fffffffffffff987fffffffe8fff780"
+  },
+  {
+    "backend": "speex",
+    "profile": 15,
+    "frames": 320,
+    "source": "Asterisk 20.21.0 codecs/ex_speex.h ex_speex16",
+    "copyright": "2008 Digium, Inc., GPL-2.0",
+    "encoded_hex": "3f7889144a00007fffffffffffffffffffffff92063fffffffffffffffffffffffc0305ffffdbbee3056fff8745431e6fe71dcca446a4375ae317a50d9fc9313abababababababababab3abababababababababab0abababd937ababb434e90bd42f134cf0ef8ddd99c7"
+  },
+  {
+    "backend": "spandsp",
+    "profile": 5,
+    "frames": 80,
+    "source": "Asterisk 20.21.0 codecs/ex_g726.h ex_g726",
+    "copyright": "2008 Digium, Inc., GPL-2.0",
+    "encoded_hex": "00000000000000000000000000000000000000000000000000000000000000000000000000000000"
+  },
+  {
+    "backend": "spandsp",
+    "profile": 12,
+    "frames": 80,
+    "source": "Asterisk 20.21.0 codecs/ex_g726.h ex_g726",
+    "copyright": "2008 Digium, Inc., GPL-2.0",
+    "encoded_hex": "00000000000000000000000000000000000000000000000000000000000000000000000000000000"
+  },
+  {
+    "backend": "spandsp",
+    "profile": 13,
+    "frames": 320,
+    "source": "Asterisk 20.21.0 codecs/ex_g722.h ex_g722",
+    "copyright": "2008 Digium, Inc., GPL-2.0",
+    "encoded_hex": "00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+  },
+  {
+    "backend": "spandsp",
+    "profile": 8,
+    "frames": 180,
+    "source": "Asterisk 20.21.0 codecs/ex_lpc10.h ex_lpc10",
+    "copyright": "2008 Digium, Inc., GPL-2.0",
+    "encoded_hex": "01083108318030"
+  }
+]

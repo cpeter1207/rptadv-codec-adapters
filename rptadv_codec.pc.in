@@ -1,0 +1,8 @@
+prefix=@PREFIX@
+libdir=@LIBDIR@
+includedir=${prefix}/include/rptadv-codec
+
+Name: rptadv_codec
+Description: Protocol-neutral versioned codec provider contract
+Version: 0.1.0-alpha1
+Cflags: -I${includedir}

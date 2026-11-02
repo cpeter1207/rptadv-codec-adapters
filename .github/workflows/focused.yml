@@ -10,13 +10,13 @@ on:
         description: Focused verification target
         required: true
         type: choice
-        options: [test, abi-check, install-check, package-check, docs, lint, static-analysis]
+        options: [test, abi-check, install-check, package-check, docs, lint, static-analysis, coverage, coverage-foundations, coverage-codecs, coverage-owned-c]
 permissions:
   contents: read
   packages: read
 jobs:
   focused:
-    uses: cpeter1207/rptadv-shared-library-workflows/.github/workflows/codec-focused.yml@ci/codec-provider-image
+    uses: cpeter1207/rptadv-shared-library-workflows/.github/workflows/codec-focused.yml@main
     with:
       source_sha: ${{ inputs.source_sha }}
       target: ${{ inputs.target }}
