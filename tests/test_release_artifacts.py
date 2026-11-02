@@ -20,15 +20,13 @@ class ReleaseArtifacts(unittest.TestCase):
         ]
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
-            for directory in ("build", "debian", "rust", "packaging/external", ".work"):
+            for directory in ("debian", "rust", "packaging/external", ".work"):
                 (root / directory).mkdir(parents=True)
             shutil.copyfile(ROOT / "Makefile", root / "Makefile")
             (root / "debian/control").write_text(control)
             (root / "README.md").write_text("tracked source\n")
             (root / ".work/private").write_text("untracked evidence\n")
             expected = {f"{package}_test_amd64.deb" for package in packages}
-            for name in expected | {"librptadv-codec-g7111-dbgsym_test_amd64.deb"}:
-                (root / "build" / name).write_text(name)
             for command in (
                 ["git", "init", "--quiet"],
                 ["git", "add", "Makefile", "README.md", "debian/control"],
@@ -45,12 +43,24 @@ class ReleaseArtifacts(unittest.TestCase):
                 ],
             ):
                 subprocess.run(command, cwd=root, check=True, capture_output=True)
+            clean_dist = subprocess.run(
+                ["make", "--no-print-directory", "dist"],
+                cwd=root,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+            self.assertEqual(clean_dist.returncode, 0, clean_dist.stderr)
+            for name in expected | {"librptadv-codec-g7111-dbgsym_test_amd64.deb"}:
+                (root / "build" / name).write_text(name)
             result = subprocess.run(
                 [
                     "make",
                     "--no-print-directory",
                     "-o",
                     "package-check",
+                    "-o",
+                    "package-artifact-check",
                     "release-packages",
                 ],
                 cwd=root,
