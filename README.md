@@ -37,3 +37,13 @@ its codec selection and packet settings.
 
 Developer references: [quality checks](QUALITY.md) and
 [source and license evidence](dependencies/review.md).
+
+## Release artifacts
+
+The tag-triggered shared release workflow publishes Debian 13 packages and a
+tracked-source archive from a merged revision that passed the complete quality
+gate. `make release-packages` stages the runtime, development and companion
+packages declared in `debian/control`, excluding debug-symbol packages. The
+packages are extracted for SONAME checks and the existing public C ABI smoke
+before staging. The source-owned quality-image wrapper reuses the verified
+native codec environment.

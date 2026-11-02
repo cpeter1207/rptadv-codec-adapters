@@ -7,6 +7,7 @@ MULTIARCH := $(shell dpkg-architecture -qDEB_HOST_MULTIARCH)
 LIBDIR ?= $(PREFIX)/lib/$(MULTIARCH)
 DESTDIR ?=
 VERSION := 0.1.0-alpha1
+PACKAGE := rptadv-codec-adapters
 BACKENDS := g711 pcm gsm opus speex spandsp bcg729 ilbc dialogic ffmpeg
 LIBRARIES := $(addprefix librptadv_codec_,$(BACKENDS))
 SONAMES := $(addsuffix .so.1,$(LIBRARIES))
@@ -19,9 +20,12 @@ EXTERNAL_SOURCES := $(shell find packaging/external -type f ! -name '*.pyc')
 export RPTADV_CODEC_BACKEND_LIBDIR ?= $(CURDIR)/build/backends/lib
 export LD_LIBRARY_PATH := $(RPTADV_CODEC_BACKEND_LIBDIR)$(if $(LD_LIBRARY_PATH),:$(LD_LIBRARY_PATH))
 
-.PHONY: all external backend-check sources-check test abi-check lint static-analysis docs quality install install-check coverage coverage-foundations coverage-codecs coverage-owned-c package-check debian-package-check platform-verify clean
+.PHONY: all external backend-check sources-check test abi-check lint static-analysis docs quality install install-check coverage coverage-foundations coverage-codecs coverage-owned-c package-check package-artifact-check debian-package-check release-packages dist platform-verify clean
 
 all: $(addprefix build/,$(SONAMES))
+
+build:
+	mkdir -p $@
 
 build/librptadv_codec_%.so.1: Cargo.toml Cargo.lock $(RUST_SOURCES) rust/ffmpeg/src/glue.c | backend-check
 	$(CARGO) rustc -p rptadv-codec-$* --release --locked -- -C link-arg=-Wl,-soname,librptadv_codec_$*.so.1
@@ -142,7 +146,34 @@ package-check: all
 
 debian-package-check: package-check
 
-platform-verify: test install-check package-check
+# Exercise the installed public ABI even when release builds use nocheck.
+package-artifact-check: package-check
+	set -eu; stage=$$(mktemp -d "$(CURDIR)/build/package-abi.XXXXXX"); \
+	trap 'rm -rf "$$stage"' EXIT; \
+	for package in $$(sed -n 's/^Package: //p' debian/control); do \
+		dpkg-deb --extract build/"$$package"_*.deb "$$stage"; \
+	done; \
+	for library in $(LIBRARIES); do \
+		readelf -d "$$stage$(LIBDIR)/$$library.so.1" | grep -F "$$library.so.1"; \
+	done; \
+	$(CC) -std=c11 -Wall -Wextra -Werror -I"$$stage$(PREFIX)/include/rptadv-codec" \
+		tests/abi_header_smoke.c -L"$$stage$(LIBDIR)" -lrptadv_codec_g711 \
+		-o "$$stage/abi-header-smoke"; \
+	LD_LIBRARY_PATH="$$stage$(LIBDIR):$$LD_LIBRARY_PATH" "$$stage/abi-header-smoke"
+
+# The shared release workflow publishes declared native packages and tracked source.
+release-packages: package-artifact-check dist
+	rm -rf build/debian-source
+	mkdir -p build/debian-source
+	set -eu; for package in $$(sed -n 's/^Package: //p' debian/control); do \
+		cp build/"$$package"_*.deb build/debian-source/; \
+	done
+
+dist: | build
+	git -c safe.directory=$(CURDIR) archive --format=tar --prefix=$(PACKAGE)-$(VERSION)/ HEAD | \
+		gzip -n > build/$(PACKAGE)-$(VERSION).tar.gz
+
+platform-verify: test install-check package-artifact-check
 
 clean:
 	$(CARGO) clean
